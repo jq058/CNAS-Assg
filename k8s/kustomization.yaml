@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Platform CRDs/controllers and runtime Secrets are bootstrapped separately.
+# Observability also has its own ordered installer because it uses Prometheus
+# Operator CRDs which do not exist on a fresh cluster.
+resources:
+  - 00-namespace.yaml
+  - 14-serviceaccounts.yaml
+  - 01-configmap.yaml
+  - 03-mysql-pvc.yaml
+  - 11-mysql-init-configmap.yaml
+  - 04-mysql-statefulset.yaml
+  - 05-mysql-service.yaml
+  - 15-redis.yaml
+  - 16-db-migration-job.yaml
+  - 06-php-deployment.yaml
+  - 07-php-service.yaml
+  - 08-gateway.yaml
+  - 09-hpa.yaml
+  - 12-pdb.yaml
+  - 13-network-policy.yaml
+  - 17-mysql-backup.yaml
+  - kyverno/01-require-resource-limits.yaml
+  - kyverno/02-disallow-privileged-containers.yaml
+  - kyverno/03-disallow-latest-tag.yaml
+  - kyverno/04-require-run-as-non-root.yaml
+
+# CI can override this image safely with Kustomize's image transformer. The
+# checked-in tag is explicit so the base itself also passes admission policy.
+images:
+  - name: sinoceratops/cnas-php-app
+    newName: sinoceratops/cnas-php-app
+    newTag: bootstrap

@@ -6,6 +6,9 @@ metadata:
 spec:
   serviceName: mysql-service
   replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: mysql
@@ -15,14 +18,24 @@ spec:
         app: mysql
     spec:
       serviceAccountName: mysql-sa
-      # Run MySQL process as the mysql user (UID 999)
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
         fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: mysql
-          image: mysql:8.0
+          image: mysql:8.0.42
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3306
+            - name: mysql
+              containerPort: 3306
           securityContext:
             runAsUser: 999
             runAsGroup: 999
@@ -32,7 +45,10 @@ spec:
               drop: ["ALL"]
           env:
             - name: MYSQL_DATABASE
-              value: mydb
+              valueFrom:
+                configMapKeyRef:
+                  name: cnas-config
+                  key: DB_NAME
             - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:
@@ -63,17 +79,28 @@ spec:
               command:
                 - sh
                 - -c
-                - "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} --silent"
-            initialDelaySeconds: 20
+                - "MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqladmin ping -h 127.0.0.1 -u root --silent"
+            timeoutSeconds: 3
             periodSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             exec:
               command:
                 - sh
                 - -c
-                - "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} --silent"
-            initialDelaySeconds: 30
-            periodSeconds: 10
+                - "MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqladmin ping -h 127.0.0.1 -u root --silent"
+            timeoutSeconds: 3
+            periodSeconds: 20
+            failureThreshold: 3
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqladmin ping -h 127.0.0.1 -u root --silent"
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
       volumes:
         - name: mysql-storage
           persistentVolumeClaim:

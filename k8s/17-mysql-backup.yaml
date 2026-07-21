@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-backup-pvc
+  namespace: cnas
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: cnas
+  labels:
+    app: mysql-backup
+spec:
+  schedule: "0 2 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app: mysql-backup
+        spec:
+          serviceAccountName: mysql-backup-sa
+          automountServiceAccountToken: false
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: mysqldump
+              image: mysql:8.0.42
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  umask 077
+                  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+                  MYSQL_PWD="$MYSQL_PASSWORD" mysqldump \
+                    -h mysql-service \
+                    -u "$MYSQL_USER" \
+                    --single-transaction \
+                    --no-tablespaces \
+                    "$MYSQL_DATABASE" > "/backup/cnas-${stamp}.sql"
+                  find /backup -type f -name 'cnas-*.sql' -mtime +7 -delete
+              env:
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cnas-config
+                      key: DB_NAME
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnas-secret
+                      key: DB_USER
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnas-secret
+                      key: DB_PASSWORD
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                runAsGroup: 999
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: "25m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "250m"
+                  memory: "256Mi"
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: mysql-backup-pvc
+            - name: tmp
+              emptyDir:
+                sizeLimit: 32Mi

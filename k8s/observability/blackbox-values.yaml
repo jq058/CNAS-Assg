@@ -1,0 +1,58 @@
+# The chart is pinned by scripts/Install-Observability.ps1.
+fullnameOverride: blackbox-exporter
+
+commonLabels:
+  cnas.openai/role: blackbox
+
+config:
+  modules:
+    http_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        method: GET
+        preferred_ip_protocol: ip4
+        follow_redirects: true
+    cnas_gateway:
+      prober: http
+      timeout: 5s
+      http:
+        method: GET
+        preferred_ip_protocol: ip4
+        follow_redirects: true
+        headers:
+          Host: cnas.local
+        tls_config:
+          # Kind uses the repository's self-signed cnas.local demonstration
+          # certificate. Production must use a trusted certificate and set
+          # this to false.
+          insecure_skip_verify: true
+
+serviceMonitor:
+  enabled: true
+  defaults:
+    labels:
+      app.kubernetes.io/part-of: cnas-observability
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

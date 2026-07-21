@@ -1,0 +1,128 @@
+# Run each schema change as a new, immutable Job. Version 2 creates the schema
+# for a fresh database and safely upgrades databases retained on an old PVC.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration-v2
+  namespace: cnas
+  labels:
+    app: db-migration
+    app.kubernetes.io/version: v2
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: db-migration
+    spec:
+      serviceAccountName: db-migration-sa
+      automountServiceAccountToken: false
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: mysql:8.0.42
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              until MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin ping -h mysql-service -u "$MYSQL_USER" --silent; do
+                echo "Waiting for MySQL..."
+                sleep 3
+              done
+
+              # CREATE TABLE IF NOT EXISTS handles a fresh database. On a
+              # retained PVC it deliberately leaves the old table untouched.
+              MYSQL_PWD="$MYSQL_PASSWORD" mysql -h mysql-service -u "$MYSQL_USER" "$MYSQL_DATABASE" < /schema/init.sql
+
+              duplicate_groups="$(MYSQL_PWD="$MYSQL_PASSWORD" mysql \
+                -h mysql-service \
+                -u "$MYSQL_USER" \
+                "$MYSQL_DATABASE" \
+                --batch \
+                --skip-column-names \
+                --execute='SELECT COUNT(*) FROM (SELECT email FROM users GROUP BY email HAVING COUNT(*) > 1) AS duplicate_email_groups;')"
+
+              case "$duplicate_groups" in
+                ''|*[!0-9]*)
+                  echo "Migration v2 could not verify email uniqueness; refusing to continue." >&2
+                  exit 1
+                  ;;
+              esac
+              if [ "$duplicate_groups" -ne 0 ]; then
+                echo "Migration v2 blocked: $duplicate_groups duplicate email group(s) exist. Resolve duplicates, delete job/db-migration-v2 if it has failed, then reapply." >&2
+                exit 1
+              fi
+
+              MYSQL_PWD="$MYSQL_PASSWORD" mysql -h mysql-service -u "$MYSQL_USER" "$MYSQL_DATABASE" <<'SQL'
+              ALTER TABLE users MODIFY COLUMN email VARCHAR(254) NOT NULL;
+
+              SET @constraint_exists = (
+                SELECT COUNT(*)
+                FROM information_schema.table_constraints
+                WHERE constraint_schema = DATABASE()
+                  AND table_name = 'users'
+                  AND constraint_name = 'uq_users_email'
+                  AND constraint_type = 'UNIQUE'
+              );
+              SET @migration_ddl = IF(
+                @constraint_exists = 0,
+                'ALTER TABLE users ADD CONSTRAINT uq_users_email UNIQUE (email)',
+                'SELECT ''uq_users_email already present'' AS migration_status'
+              );
+              PREPARE migration_statement FROM @migration_ddl;
+              EXECUTE migration_statement;
+              DEALLOCATE PREPARE migration_statement;
+              SQL
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: cnas-config
+                  key: DB_NAME
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cnas-secret
+                  key: DB_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnas-secret
+                  key: DB_PASSWORD
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+          volumeMounts:
+            - name: schema
+              mountPath: /schema
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: schema
+          configMap:
+            name: mysql-init-script
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi

@@ -4,9 +4,12 @@ metadata:
   name: mysql-service
   namespace: cnas
 spec:
+  # Headless service gives the StatefulSet a stable network identity.
+  clusterIP: None
+  publishNotReadyAddresses: false
   selector:
     app: mysql
   ports:
-    - port: 3306
-      targetPort: 3306
-  type: ClusterIP
+    - name: mysql
+      port: 3306
+      targetPort: mysql

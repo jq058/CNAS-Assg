@@ -38,8 +38,9 @@ kubeconfig
 
 # Credentials (never commit!)
 *credentials*
-*secret*
-!k8s/*secret*.yaml
+k8s/02-secret.yaml
+k8s/generated/
+k8s/overlays/ci-runtime/
 *.pem
 *.key
 *.crt
@@ -48,3 +49,7 @@ kubeconfig
 dist/
 build/
 target/
+test-results/
+evidence/
+sbom*.json
+rendered-kubernetes.yaml

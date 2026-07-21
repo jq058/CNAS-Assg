@@ -1,155 +1,139 @@
-# Docker Implementation Validation Script
-# Run this script to validate your Docker setup
-
-Write-Host "==================================" -ForegroundColor Cyan
-Write-Host "Docker Implementation Validator" -ForegroundColor Cyan
-Write-Host "==================================" -ForegroundColor Cyan
-Write-Host ""
-
-$errors = 0
-$warnings = 0
-
-# Check Docker installation
-Write-Host "1. Checking Docker installation..." -ForegroundColor Yellow
-try {
-    $dockerVersion = docker --version
-    Write-Host "   ✓ Docker installed: $dockerVersion" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Docker not found! Please install Docker Desktop." -ForegroundColor Red
-    $errors++
-}
-
-# Check Docker Compose
-Write-Host "2. Checking Docker Compose..." -ForegroundColor Yellow
-try {
-    $composeVersion = docker-compose --version
-    Write-Host "   ✓ Docker Compose installed: $composeVersion" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Docker Compose not found!" -ForegroundColor Red
-    $errors++
-}
-
-# Check if Docker daemon is running
-Write-Host "3. Checking Docker daemon..." -ForegroundColor Yellow
-try {
-    docker ps | Out-Null
-    Write-Host "   ✓ Docker daemon is running" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Docker daemon is not running. Please start Docker Desktop." -ForegroundColor Red
-    $errors++
-}
-
-# Check for required files
-Write-Host "4. Checking required files..." -ForegroundColor Yellow
-$requiredFiles = @(
-    "Dockerfile",
-    "docker-compose.yml",
-    ".dockerignore",
-    ".env.example"
+[CmdletBinding()]
+param(
+    [switch]$BuildImage
 )
 
-foreach ($file in $requiredFiles) {
-    if (Test-Path $file) {
-        Write-Host "   ✓ $file exists" -ForegroundColor Green
-    } else {
-        Write-Host "   ✗ $file is missing!" -ForegroundColor Red
-        $errors++
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$repoRoot = (Resolve-Path $PSScriptRoot).Path
+$errors = [System.Collections.Generic.List[string]]::new()
+$warnings = [System.Collections.Generic.List[string]]::new()
+
+function Test-CommandAvailable {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+        $script:errors.Add("Required command '$Name' is not available on PATH.")
+        return $false
+    }
+    return $true
+}
+
+function Invoke-Check {
+    param(
+        [Parameter(Mandatory = $true)][string]$Description,
+        [Parameter(Mandatory = $true)][scriptblock]$Action
+    )
+
+    Write-Host "Checking $Description..." -ForegroundColor Cyan
+    try {
+        & $Action
+        Write-Host "PASS: $Description" -ForegroundColor Green
+    }
+    catch {
+        $script:errors.Add("$Description`: $($_.Exception.Message)")
+        Write-Host "FAIL: $Description" -ForegroundColor Red
     }
 }
 
-# Check for .env file
-Write-Host "5. Checking environment configuration..." -ForegroundColor Yellow
-if (Test-Path ".env") {
-    Write-Host "   ✓ .env file exists" -ForegroundColor Green
-} else {
-    Write-Host "   ⚠ .env file not found. Copy .env.example to .env and configure." -ForegroundColor Yellow
-    $warnings++
-}
-
-# Check Dockerfile best practices
-Write-Host "6. Validating Dockerfile..." -ForegroundColor Yellow
-$dockerfile = Get-Content "Dockerfile" -Raw
-
-if ($dockerfile -match "USER\s+\w+") {
-    Write-Host "   ✓ Non-root user specified" -ForegroundColor Green
-} else {
-    Write-Host "   ⚠ Consider adding non-root user (USER directive)" -ForegroundColor Yellow
-    $warnings++
-}
-
-if ($dockerfile -match "HEALTHCHECK") {
-    Write-Host "   ✓ Health check configured" -ForegroundColor Green
-} else {
-    Write-Host "   ⚠ No health check found" -ForegroundColor Yellow
-    $warnings++
-}
-
-if ($dockerfile -match "php:\d+\.\d+-apache") {
-    Write-Host "   ✓ Specific PHP version tag used" -ForegroundColor Green
-} else {
-    Write-Host "   ⚠ Consider using specific version tags" -ForegroundColor Yellow
-    $warnings++
-}
-
-# Try building the image
-Write-Host "7. Testing Docker build..." -ForegroundColor Yellow
+Push-Location $repoRoot
 try {
-    $buildOutput = docker build -t cnas-php-app-test:latest . 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "   ✓ Docker build successful" -ForegroundColor Green
-        
-        # Clean up test image
-        docker rmi cnas-php-app-test:latest -f | Out-Null
-    } else {
-        Write-Host "   ✗ Docker build failed!" -ForegroundColor Red
-        Write-Host "   Error: $buildOutput" -ForegroundColor Red
-        $errors++
+    if (-not (Test-CommandAvailable -Name "docker")) {
+        throw "Docker is required."
     }
-} catch {
-    Write-Host "   ✗ Build test failed: $_" -ForegroundColor Red
-    $errors++
-}
 
-# Check if php-app directory exists
-Write-Host "8. Checking application structure..." -ForegroundColor Yellow
-$phpAppPath = "c:\Users\Lau Jia Qi\Downloads\cnas app\cnas app\php-app"
-if (Test-Path $phpAppPath) {
-    Write-Host "   ✓ PHP application directory found" -ForegroundColor Green
-    
-    $phpFiles = @("index.php", "db.php", "create.php", "update.php", "delete.php")
-    foreach ($file in $phpFiles) {
-        $fullPath = Join-Path $phpAppPath $file
-        if (Test-Path $fullPath) {
-            Write-Host "   ✓ $file exists" -ForegroundColor Green
-        } else {
-            Write-Host "   ✗ $file is missing!" -ForegroundColor Red
-            $errors++
+    Invoke-Check -Description "Docker daemon connectivity" -Action {
+        & docker info --format '{{.ServerVersion}}' | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Docker Desktop is not running." }
+    }
+
+    Invoke-Check -Description "Docker Compose v2" -Action {
+        & docker compose version | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Docker Compose v2 is unavailable." }
+    }
+
+    $requiredFiles = @(
+        "Dockerfile",
+        "docker-compose.yml",
+        ".dockerignore",
+        ".env.example",
+        "php-app/index.php",
+        "php-app/create.php",
+        "php-app/update.php",
+        "php-app/delete.php",
+        "php-app/livez.php",
+        "php-app/readyz.php"
+    )
+    Invoke-Check -Description "repository file layout" -Action {
+        $missing = $requiredFiles | Where-Object { -not (Test-Path -LiteralPath $_) }
+        if ($missing) { throw "Missing: $($missing -join ', ')" }
+    }
+
+    if (-not (Test-Path -LiteralPath ".env")) {
+        $warnings.Add(".env is absent. Copy .env.example to .env and replace every placeholder before starting Compose.")
+    }
+
+    $dockerfile = Get-Content -LiteralPath "Dockerfile" -Raw
+    Invoke-Check -Description "non-root unprivileged container configuration" -Action {
+        if ($dockerfile -notmatch '(?m)^USER\s+www-data\s*$') { throw "Dockerfile must run as www-data." }
+        if ($dockerfile -notmatch '(?m)^EXPOSE\s+8080\s*$') { throw "Dockerfile must expose unprivileged port 8080." }
+        if ($dockerfile -notmatch '(?m)^HEALTHCHECK\s') { throw "Dockerfile has no HEALTHCHECK." }
+    }
+
+    $temporaryValues = @{
+        DB_PASSWORD = $env:DB_PASSWORD
+        MYSQL_ROOT_PASSWORD = $env:MYSQL_ROOT_PASSWORD
+        REDIS_PASSWORD = $env:REDIS_PASSWORD
+    }
+    try {
+        if (-not $env:DB_PASSWORD) { $env:DB_PASSWORD = "validation-only-not-a-secret" }
+        if (-not $env:MYSQL_ROOT_PASSWORD) { $env:MYSQL_ROOT_PASSWORD = "validation-only-not-a-secret" }
+        if (-not $env:REDIS_PASSWORD) { $env:REDIS_PASSWORD = "validation-only-not-a-secret" }
+
+        Invoke-Check -Description "Docker Compose rendering" -Action {
+            & docker compose config --quiet
+            if ($LASTEXITCODE -ne 0) { throw "docker compose config failed." }
         }
     }
-} else {
-    Write-Host "   ⚠ PHP application directory not found at expected location" -ForegroundColor Yellow
-    $warnings++
+    finally {
+        $env:DB_PASSWORD = $temporaryValues.DB_PASSWORD
+        $env:MYSQL_ROOT_PASSWORD = $temporaryValues.MYSQL_ROOT_PASSWORD
+        $env:REDIS_PASSWORD = $temporaryValues.REDIS_PASSWORD
+    }
+
+    if ($BuildImage) {
+        $tag = "cnas-php-app:validation-$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+        try {
+            Invoke-Check -Description "application image build" -Action {
+                & docker build --tag $tag .
+                if ($LASTEXITCODE -ne 0) { throw "docker build failed." }
+            }
+        }
+        finally {
+            & docker image rm --force $tag *> $null
+        }
+    }
+    else {
+        $warnings.Add("Image build was skipped. Re-run with -BuildImage before submission.")
+    }
+}
+finally {
+    Pop-Location
 }
 
-# Summary
 Write-Host ""
-Write-Host "==================================" -ForegroundColor Cyan
-Write-Host "Validation Summary" -ForegroundColor Cyan
-Write-Host "==================================" -ForegroundColor Cyan
-
-if ($errors -eq 0 -and $warnings -eq 0) {
-    Write-Host "✓ All checks passed! Your Docker implementation is ready." -ForegroundColor Green
-} elseif ($errors -eq 0) {
-    Write-Host "⚠ Validation passed with $warnings warning(s)" -ForegroundColor Yellow
-    Write-Host "Review the warnings above for recommended improvements." -ForegroundColor Yellow
-} else {
-    Write-Host "✗ Validation failed with $errors error(s) and $warnings warning(s)" -ForegroundColor Red
-    Write-Host "Please fix the errors above before proceeding." -ForegroundColor Red
+Write-Host "Validation summary" -ForegroundColor Cyan
+foreach ($warning in $warnings) {
+    Write-Host "WARN: $warning" -ForegroundColor Yellow
+}
+foreach ($errorMessage in $errors) {
+    Write-Host "ERROR: $errorMessage" -ForegroundColor Red
 }
 
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. docker-compose up -d       # Start the application" -ForegroundColor White
-Write-Host "2. docker-compose logs -f     # View logs" -ForegroundColor White
-Write-Host "3. Visit http://localhost:8080 # Access the app" -ForegroundColor White
-Write-Host ""
+if ($errors.Count -gt 0) {
+    exit 1
+}
+
+Write-Host "PASS: Docker repository validation completed with $($warnings.Count) warning(s)." -ForegroundColor Green
+exit 0

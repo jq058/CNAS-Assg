@@ -1,0 +1,104 @@
+# Kong Gateway replaces the retired community ingress-nginx controller.
+# Install the pinned Gateway API CRDs and Kong chart before this manifest.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: kong
+  annotations:
+    konghq.com/gatewayclass-unmanaged: "true"
+spec:
+  controllerName: konghq.com/kic-gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cnas-gateway
+  namespace: cnas
+spec:
+  gatewayClassName: kong
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: cnas.local
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: cnas.local
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: cnas-local-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+# Plain HTTP is retained only to redirect clients to TLS.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cnas-http-redirect
+  namespace: cnas
+spec:
+  parentRefs:
+    - name: cnas-gateway
+      sectionName: http
+  hostnames:
+    - cnas.local
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cnas-app
+  namespace: cnas
+  annotations:
+    konghq.com/plugins: cnas-rate-limit,cnas-correlation-id
+spec:
+  parentRefs:
+    - name: cnas-gateway
+      sectionName: https
+  hostnames:
+    - cnas.local
+  rules:
+    - backendRefs:
+        - name: php-service
+          port: 80
+          weight: 1
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: cnas-rate-limit
+  namespace: cnas
+  annotations:
+    kubernetes.io/ingress.class: kong
+plugin: rate-limiting
+config:
+  minute: 60
+  limit_by: ip
+  policy: local
+  fault_tolerant: true
+  hide_client_headers: false
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: cnas-correlation-id
+  namespace: cnas
+  annotations:
+    kubernetes.io/ingress.class: kong
+plugin: correlation-id
+config:
+  header_name: X-Request-ID
+  generator: uuid#counter
+  echo_downstream: true

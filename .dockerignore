@@ -35,3 +35,11 @@ temp/
 # Development files
 docker-compose*.yml
 kind-cluster.yaml
+tests/
+
+# Local configuration and database state
+.env
+.env.*
+!.env.example
+db-data/
+redis-data/

@@ -1,21 +1,17 @@
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
-  name: disallow-latest-tag
+  name: cnas-disallow-latest-tag
   annotations:
-    policies.kyverno.io/title: Disallow Latest Image Tag
+    policies.kyverno.io/title: Require Explicit Non-latest Image Tags
     policies.kyverno.io/category: Best Practices
-    policies.kyverno.io/severity: medium
-    policies.kyverno.io/description: >-
-      Using the 'latest' image tag is unpredictable and makes it impossible
-      to track exactly which image version is running. This policy enforces
-      the use of explicit, versioned image tags (e.g. :1.0.0, :v2, :20240101)
-      to ensure reproducible and auditable deployments.
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
 spec:
-  validationFailureAction: Enforce
   background: true
+  failurePolicy: Fail
   rules:
-    - name: check-image-tag
+    - name: require-image-tag
       match:
         any:
           - resources:
@@ -24,15 +20,36 @@ spec:
               namespaces:
                 - cnas
       validate:
-        message: "Image tag 'latest' is not allowed in namespace 'cnas'. Use an explicit version tag (e.g. :1.0.0 or :20240101)."
+        failureAction: Enforce
+        message: All container images must declare an explicit tag.
         foreach:
-          - list: "request.object.spec.containers"
-            deny:
-              conditions:
-                any:
-                  - key: "{{ element.image }}"
-                    operator: Equals
-                    value: "*:latest"
-                  - key: "{{ element.image }}"
-                    operator: NotContains
-                    value: ":"
+          - list: request.object.spec.containers
+            pattern:
+              image: "*:*"
+          - list: request.object.spec.initContainers
+            pattern:
+              image: "*:*"
+          - list: request.object.spec.ephemeralContainers
+            pattern:
+              image: "*:*"
+    - name: reject-latest-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - cnas
+      validate:
+        failureAction: Enforce
+        message: The mutable latest image tag is not allowed.
+        foreach:
+          - list: request.object.spec.containers
+            pattern:
+              image: "!*:latest"
+          - list: request.object.spec.initContainers
+            pattern:
+              image: "!*:latest"
+          - list: request.object.spec.ephemeralContainers
+            pattern:
+              image: "!*:latest"

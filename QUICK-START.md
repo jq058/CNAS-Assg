@@ -1,84 +1,62 @@
-# ⚡ Quick Start - Manual Testing
+# Quick start
 
-**5 commands, 5 minutes, done.**
+Use this page for a fast local check. Use [the demonstration runbook](docs/DEMO-RUNBOOK.md) for graded Kubernetes evidence.
 
----
+## Docker Compose
 
-## 1️⃣ Navigate to project
-```powershell
-cd "c:\Cloud Native Architecture\CNAS-Assg"
-```
+Prerequisite: Docker Desktop with Compose v2.
 
-## 2️⃣ Start containers
-```powershell
-docker-compose up -d
-```
+~~~powershell
+Copy-Item .env.example .env
+~~~
 
-## 3️⃣ Wait (important!)
-Wait 60 seconds for MySQL to initialize.
+Open .env and replace all three password placeholders with different long random values. Then run:
 
-## 4️⃣ Check status
-```powershell
-docker-compose ps
-```
-All should show "Up (healthy)"
+~~~powershell
+docker compose up -d --build
+docker compose ps
+curl.exe http://localhost:8080/livez.php
+curl.exe http://localhost:8080/readyz.php
+~~~
 
-## 5️⃣ Open browser
-```
-http://localhost:8082
-```
+Open http://localhost:8080 and verify create, read, update, and delete.
 
----
+Keep the data and stop:
 
-## ✅ Success?
+~~~powershell
+docker compose down
+~~~
 
-You should see:
-- "Team Members in Class -T01 Team – 02"
-- A table with columns
-- "Add New Team Member" link
-- No errors
+Erase the local database/session volumes only when a clean reset is intended:
 
----
+~~~powershell
+docker compose down -v
+~~~
 
-## 🧪 Test CRUD
+## Kubernetes coursework environment
 
-1. **Add** a user (click "Add New Team Member")
-2. **Edit** the user (click "Edit")
-3. **Delete** the user (click "Delete")
+Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, OpenSSL, and PowerShell 7.
 
-All working? **You're done!** ✅
+~~~powershell
+.\k8s\scripts\create-kind-cluster.ps1
 
----
+$env:DB_USER = "cnasuser"
+$env:DB_PASSWORD = "<strong-database-password>"
+$env:MYSQL_ROOT_PASSWORD = "<different-root-password>"
+$env:REDIS_PASSWORD = "<different-redis-password>"
 
-## 🛑 Stop when finished
-```powershell
-docker-compose down
-```
+.\k8s\scripts\bootstrap-secrets.ps1
+.\k8s\scripts\bootstrap-local-tls.ps1
 
----
+docker build -t sinoceratops/cnas-php-app:bootstrap .
+kind load docker-image sinoceratops/cnas-php-app:bootstrap --name cnas-cluster
+kubectl apply -k k8s
 
-## 🌐 URLs
+kubectl -n cnas wait --for=condition=complete job/db-migration-v2 --timeout=300s
+kubectl -n cnas rollout status deployment/php-app --timeout=300s
+kubectl -n cnas get pods -o wide
+~~~
 
-- **PHP App:** http://localhost:8082
-- **phpMyAdmin:** http://localhost:8083 (login: root/rootpass)
-- **Jenkins:** http://localhost:8080 (your existing one)
+Add 127.0.0.1 cnas.local to the workstation hosts file, then open https://cnas.local. The local certificate is self-signed by design.
 
----
-
-## 🆘 Problems?
-
-```powershell
-# Check logs
-docker-compose logs
-
-# Restart
-docker-compose restart
-
-# Clean restart
-docker-compose down -v
-docker-compose up -d
-```
-
----
-
-**For detailed testing, see: MANUAL-TESTING.md**
+Read [the platform runbook](k8s/PLATFORM.md) for the platform safeguards and [the demonstration runbook](docs/DEMO-RUNBOOK.md) for security, scaling, resilience, monitoring, backup/restore, and evidence checks.

@@ -1,0 +1,66 @@
+# The failover script deletes one php-app Pod while this Job sends requests.
+# Any failed request makes the Job fail, providing a reproducible continuity test.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnas-continuity-test
+  namespace: cnas
+  labels:
+    app.kubernetes.io/name: cnas-continuity-test
+    app.kubernetes.io/part-of: cnas-validation
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cnas-continuity-test
+        app.kubernetes.io/part-of: cnas-validation
+        access-profile: validation
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: continuity-probe
+          image: curlimages/curl:8.12.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              failures=0
+              request=1
+              while [ "$request" -le 60 ]; do
+                if curl --fail --silent --show-error --max-time 3 \
+                  http://php-service.cnas.svc.cluster.local/ > /dev/null; then
+                  echo "request=${request} result=success"
+                else
+                  failures=$((failures + 1))
+                  echo "request=${request} result=failure"
+                fi
+                request=$((request + 1))
+                sleep 0.5
+              done
+              echo "requests=60 failures=${failures}"
+              test "$failures" -eq 0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

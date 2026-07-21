@@ -1,0 +1,69 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1f2937;
+  background: #f3f4f6;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: #1d4ed8; }
+
+.container {
+  width: min(960px, calc(100% - 2rem));
+  margin: 3rem auto;
+}
+
+.page-header, .form-actions, .actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.page-header { justify-content: space-between; }
+.eyebrow, .status-code { color: #4b5563; font-weight: 650; }
+.button {
+  display: inline-block;
+  border: 1px solid #1d4ed8;
+  border-radius: .4rem;
+  padding: .6rem .9rem;
+  background: #1d4ed8;
+  color: white;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.button.secondary { background: white; color: #1d4ed8; }
+
+.table-wrapper, .form-card, .message-card {
+  overflow-x: auto;
+  border: 1px solid #d1d5db;
+  border-radius: .6rem;
+  padding: 1.25rem;
+  background: white;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .75rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+th { background: #f9fafb; }
+.delete-form { display: inline; }
+.link-button { border: 0; padding: 0; background: none; color: #1d4ed8; font: inherit; text-decoration: underline; cursor: pointer; }
+.danger, .field-error { color: #b91c1c; }
+
+.form-card { max-width: 640px; }
+.field { margin: 1rem 0; }
+label { display: block; margin-bottom: .35rem; font-weight: 650; }
+input {
+  width: 100%;
+  border: 1px solid #9ca3af;
+  border-radius: .35rem;
+  padding: .65rem;
+  font: inherit;
+}
+input[aria-invalid="true"] { border-color: #b91c1c; }
+.field-error { margin: .35rem 0 0; }
+.error-summary { border-left: .3rem solid #b91c1c; padding: .75rem 1rem; background: #fef2f2; }
+
+@media (max-width: 600px) {
+  .page-header { align-items: flex-start; flex-direction: column; }
+  .actions { align-items: flex-start; flex-direction: column; }
+}

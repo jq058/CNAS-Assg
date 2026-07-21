@@ -1,0 +1,80 @@
+# Pinned Kong Gateway installation for the local Kind environment.
+# Chart: kong/ingress 0.24.0
+controller:
+  replicaCount: 2
+  ingressController:
+    image:
+      repository: kong/kubernetes-ingress-controller
+      tag: "3.5.8"
+      pullPolicy: IfNotPresent
+    watchNamespaces:
+      - cnas
+    rbac:
+      enableClusterRoles: true
+      gatewayAPI:
+        enabled: true
+    admissionWebhook:
+      failurePolicy: Fail
+    env:
+      anonymous_reports: "false"
+      gateway_api_controller_name: konghq.com/kic-gateway-controller
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+gateway:
+  replicaCount: 2
+  image:
+    repository: kong
+    tag: "3.9.1"
+    pullPolicy: IfNotPresent
+  env:
+    database: "off"
+    # Match the KIC-generated route format. Expressions require configuring
+    # both KIC and Gateway and are unnecessary for this coursework workload.
+    router_flavor: traditional
+    anonymous_reports: "off"
+    proxy_access_log: /dev/stdout
+    proxy_error_log: /dev/stderr
+  proxy:
+    enabled: true
+    type: NodePort
+    http:
+      enabled: true
+      servicePort: 80
+      containerPort: 8000
+      nodePort: 30080
+    tls:
+      enabled: true
+      servicePort: 443
+      containerPort: 8443
+      nodePort: 30443
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  initContainerResources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1

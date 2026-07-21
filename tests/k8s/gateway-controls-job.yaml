@@ -1,0 +1,87 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnas-gateway-controls-test
+  namespace: cnas
+  labels:
+    app.kubernetes.io/name: cnas-gateway-controls-test
+    app.kubernetes.io/part-of: cnas-validation
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 150
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cnas-gateway-controls-test
+        app.kubernetes.io/part-of: cnas-validation
+        access-profile: validation
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway-controls
+          image: curlimages/curl:8.12.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HTTP_URL
+              value: http://kong-gateway-proxy.kong.svc.cluster.local/
+            - name: HTTPS_URL
+              value: https://kong-gateway-proxy.kong.svc.cluster.local/
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              echo "Checking HTTP-to-HTTPS redirect..."
+              status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: cnas.local' "$HTTP_URL")"
+              test "$status" = "301"
+
+              echo "Checking correlation ID on HTTPS response..."
+              curl -sSk -D /tmp/headers -o /dev/null -H 'Host: cnas.local' "$HTTPS_URL"
+              grep -qi '^X-Request-ID:' /tmp/headers
+
+              echo "Checking the 60 requests/minute rate limit across two Kong replicas..."
+              ok=0
+              limited=0
+              unexpected=0
+              request=1
+              while [ "$request" -le 150 ]; do
+                status="$(curl -sSk -o /dev/null -w '%{http_code}' -H 'Host: cnas.local' "$HTTPS_URL")"
+                case "$status" in
+                  200) ok=$((ok + 1)) ;;
+                  429) limited=$((limited + 1)) ;;
+                  *) unexpected=$((unexpected + 1)) ;;
+                esac
+                request=$((request + 1))
+              done
+              echo "successful=$ok rate_limited=$limited unexpected=$unexpected"
+              test "$limited" -gt 0
+              test "$unexpected" -eq 0
+              echo "PASS: redirect, correlation ID, and rate limiting are active."
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 8Mi

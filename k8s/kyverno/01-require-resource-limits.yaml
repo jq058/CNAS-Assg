@@ -1,20 +1,17 @@
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
-  name: require-resource-limits
+  name: cnas-require-resources
   annotations:
-    policies.kyverno.io/title: Require Resource Limits
+    policies.kyverno.io/title: Require CPU and Memory Resources
     policies.kyverno.io/category: Best Practices
     policies.kyverno.io/severity: medium
-    policies.kyverno.io/description: >-
-      All containers must define CPU and memory limits to prevent a single
-      container from exhausting node resources and causing a denial-of-service
-      for other workloads on the cluster.
+    policies.kyverno.io/subject: Pod
 spec:
-  validationFailureAction: Enforce
   background: true
+  failurePolicy: Fail
   rules:
-    - name: check-container-resources
+    - name: require-container-and-init-resources
       match:
         any:
           - resources:
@@ -22,12 +19,30 @@ spec:
                 - Pod
               namespaces:
                 - cnas
+      preconditions:
+        all:
+          - key: "{{ request.operation || 'BACKGROUND' }}"
+            operator: NotEquals
+            value: DELETE
       validate:
-        message: "All containers in namespace 'cnas' must define CPU and memory limits."
-        pattern:
-          spec:
-            containers:
-              - resources:
-                  limits:
-                    memory: "?*"
-                    cpu: "?*"
+        failureAction: Enforce
+        message: Every container and init container must set CPU/memory requests and limits.
+        foreach:
+          - list: request.object.spec.containers
+            pattern:
+              resources:
+                requests:
+                  cpu: "?*"
+                  memory: "?*"
+                limits:
+                  cpu: "?*"
+                  memory: "?*"
+          - list: request.object.spec.initContainers
+            pattern:
+              resources:
+                requests:
+                  cpu: "?*"
+                  memory: "?*"
+                limits:
+                  cpu: "?*"
+                  memory: "?*"

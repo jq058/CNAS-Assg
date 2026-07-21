@@ -4,9 +4,9 @@ metadata:
   name: php-app-pdb
   namespace: cnas
 spec:
-  # Ensures at least 2 PHP pods are always available during disruptions
-  # (node drains, rolling updates, cluster maintenance)
-  minAvailable: 2
+  # PDBs protect only against voluntary disruptions (for example node drains),
+  # not abrupt node or host failures.
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: php-app

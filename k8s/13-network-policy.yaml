@@ -1,11 +1,65 @@
-# Deny all ingress/egress by default for the cnas namespace,
-# then selectively allow only what is needed.
-
-# 1. Deny all traffic to MySQL except from php-app pods
+# These policies are enforced in Kind by the Calico CNI installed by
+# k8s/scripts/install-platform.*. kindnet alone does not enforce NetworkPolicy.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: mysql-allow-php-only
+  name: default-deny-all
+  namespace: cnas
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# DNS is the only common egress allowance. Application-specific traffic is
+# granted in the narrowly scoped policies below.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: cnas
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kong-to-php
+  namespace: cnas
+spec:
+  podSelector:
+    matchLabels:
+      app: php-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kong
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-php-and-jobs-to-mysql
   namespace: cnas
 spec:
   podSelector:
@@ -16,38 +70,34 @@ spec:
   ingress:
     - from:
         - podSelector:
-            matchLabels:
-              app: php-app
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - php-app
+                  - db-migration
+                  - mysql-backup
       ports:
         - protocol: TCP
           port: 3306
 ---
-# 2. Allow php-app to receive traffic from the Ingress controller
-#    and to make outbound connections to MySQL only
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: php-app-network-policy
+  name: allow-mysql-client-egress
   namespace: cnas
 spec:
   podSelector:
-    matchLabels:
-      app: php-app
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - php-app
+          - db-migration
+          - mysql-backup
   policyTypes:
-    - Ingress
     - Egress
-  ingress:
-    - ports:
-        - protocol: TCP
-          port: 80
   egress:
-    # Allow DNS resolution
-    - ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
-    # Allow outbound to MySQL only
     - to:
         - podSelector:
             matchLabels:
@@ -55,3 +105,121 @@ spec:
       ports:
         - protocol: TCP
           port: 3306
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-php-to-redis
+  namespace: cnas
+spec:
+  podSelector:
+    matchLabels:
+      app: php-app
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-php-into-redis
+  namespace: cnas
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: php-app
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# The blackbox exporter performs the internal readiness probe. Both namespace
+# and Pod identity must match; other monitoring workloads cannot call the app.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-blackbox-to-php
+  namespace: cnas
+spec:
+  podSelector:
+    matchLabels:
+      app: php-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              cnas.openai/role: blackbox
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Validation Jobs are explicitly trusted for application/gateway tests. The
+# negative NetworkPolicy test is labelled access-profile=untrusted and remains
+# isolated by the default-deny policy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-validation-to-php
+  namespace: cnas
+spec:
+  podSelector:
+    matchLabels:
+      app: php-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              access-profile: validation
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-validation-egress
+  namespace: cnas
+spec:
+  podSelector:
+    matchLabels:
+      access-profile: validation
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: php-app
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kong
+      ports:
+        # Calico evaluates the post-Service Kong proxy Pod ports.
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 8443

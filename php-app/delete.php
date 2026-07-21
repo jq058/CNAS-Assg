@@ -1,29 +1,44 @@
 <?php
-include 'db.php';
+declare(strict_types=1);
 
-// Only allow deletion via POST to prevent CSRF via GET (e.g. <img src="delete.php?id=1">)
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/database.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    die("Method not allowed.");
+    header('Allow: POST');
+    render_error_page(405, 'Method not allowed', 'Delete requests must be submitted from the member list.');
 }
 
-// Validate CSRF token
-if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-    http_response_code(403);
-    die("Invalid CSRF token.");
+if (!request_csrf_is_valid()) {
+    render_error_page(403, 'Request rejected', 'The form expired or was submitted from another site. Please try again.');
 }
 
-$id = intval($_POST['id']);
-if ($id <= 0) {
-    http_response_code(400);
-    die("Invalid ID.");
+$id = positive_integer($_POST['id'] ?? null);
+if ($id === null) {
+    render_error_page(400, 'Invalid member ID', 'Choose a member from the member list and try again.');
 }
 
-$stmt = $conn->prepare("DELETE FROM users WHERE id=?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$stmt->close();
+try {
+    $conn = database_connection();
+} catch (Throwable $error) {
+    error_log('Database connection failed while deleting a member: ' . $error->getMessage());
+    render_error_page(503, 'Temporarily unavailable', 'The database service is unavailable. Please try again shortly.');
+}
 
-header("Location: index.php");
-exit();
-?>
+try {
+    $statement = $conn->prepare('DELETE FROM users WHERE id = ?');
+    $statement->bind_param('i', $id);
+    $statement->execute();
+    $deletedRows = $statement->affected_rows;
+    $statement->close();
+    $conn->close();
+} catch (Throwable $error) {
+    error_log('Unable to delete member: ' . $error->getMessage());
+    render_error_page(500, 'Unable to delete member', 'The member could not be deleted. Please try again.');
+}
+
+if ($deletedRows === 0) {
+    render_error_page(404, 'Member not found', 'The requested member may already have been removed.');
+}
+
+redirect_to_index();
