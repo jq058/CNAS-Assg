@@ -13,7 +13,7 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        DOCKER_IMAGE_NAME = 'sinoceratops/cnas-php-app'
+        DOCKER_IMAGE_NAME = 'jqii/cnas-php-app'
         KUBERNETES_CREDENTIALS_ID = 'kubeconfig-cluster-secret'
         DB_CREDENTIALS_ID = 'cnas-db-credentials'
         MYSQL_ROOT_PASSWORD_CREDENTIALS_ID = 'cnas-mysql-root-password'

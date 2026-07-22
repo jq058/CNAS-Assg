@@ -56,8 +56,19 @@ function Test-SecretExists {
         [Parameter(Mandatory = $true)][string]$Name
     )
 
-    & kubectl -n $Namespace get secret $Name -o name *> $null
-    return ($LASTEXITCODE -eq 0)
+    # Windows PowerShell 5.1 can promote native stderr to an ErrorRecord when
+    # ErrorActionPreference is Stop. A missing Secret is expected here, so run
+    # this existence probe with native errors suppressed and inspect its exit
+    # code explicitly.
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "SilentlyContinue"
+        & kubectl -n $Namespace get secret $Name -o name 1>$null 2>$null
+        return ($LASTEXITCODE -eq 0)
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
 }
 
 function Apply-SecretFromFiles {

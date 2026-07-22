@@ -34,7 +34,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "php-app is not healthy before the test."
 }
 
-$baselinePods = & kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'|'}{.metadata.uid}{'|'}{.spec.nodeName}{'`n'}{end}"
+$baselinePods = & kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'|'}{.metadata.uid}{'|'}{.spec.nodeName}{'\n'}{end}"
 $baselinePodLines = @($baselinePods -split "`n" | Where-Object { $_ })
 if ($baselinePodLines.Count -eq 0) {
     throw "No php-app Pod was found."
@@ -88,7 +88,7 @@ $recoverySeconds = [Math]::Round(($recovered - $deleteRequested).TotalSeconds, 1
 $continuityExit = $LASTEXITCODE
 & kubectl -n cnas logs job/cnas-continuity-test | Tee-Object -FilePath (Join-Path $EvidenceDirectory "continuity.log")
 
-$currentPods = & kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'|'}{.metadata.uid}{'|'}{.spec.nodeName}{'`n'}{end}"
+$currentPods = & kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'|'}{.metadata.uid}{'|'}{.spec.nodeName}{'\n'}{end}"
 $replacement = @($currentPods -split "`n" | Where-Object {
     $_ -and $baselineUids -notcontains (($_ -split '\|')[1])
 }) | Select-Object -First 1

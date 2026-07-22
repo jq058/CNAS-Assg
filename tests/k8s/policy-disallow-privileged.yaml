@@ -19,7 +19,9 @@ spec:
       command: ["sh", "-c", "true"]
       securityContext:
         privileged: true
-        allowPrivilegeEscalation: false
+        # Privileged containers necessarily allow privilege escalation. Keep
+        # the fixture internally valid so admission policy performs rejection.
+        allowPrivilegeEscalation: true
         runAsNonRoot: true
         runAsUser: 65534
         capabilities:

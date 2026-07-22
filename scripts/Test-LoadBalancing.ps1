@@ -39,7 +39,7 @@ if ($jobExit -ne 0) {
 }
 
 Start-Sleep -Seconds 2
-$pods = @(& kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'`n'}{end}" |
+$pods = @(& kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'\n'}{end}" |
     Where-Object { $_ })
 if ($pods.Count -lt 2) {
     throw "At least two ready PHP Pods are required to prove load distribution."

@@ -130,7 +130,7 @@ $lokiPath = "/api/v1/namespaces/monitoring/services/http:loki-gateway:80/proxy/l
 Save-CommandOutput -Name "loki-labels" -Command "kubectl" -Arguments @("get", "--raw", $lokiPath) -AllowFailure
 
 if ($IncludeApplicationLogs) {
-    $pods = & kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'`n'}{end}"
+    $pods = & kubectl -n cnas get pods -l app=php-app -o "jsonpath={range .items[*]}{.metadata.name}{'\n'}{end}"
     foreach ($pod in ($pods -split "`n" | Where-Object { $_ })) {
         Save-CommandOutput -Name "log-$pod" -Command "kubectl" -Arguments @(
             "-n", "cnas", "logs", $pod, "-c", "php-app", "--tail=500", "--timestamps=true"

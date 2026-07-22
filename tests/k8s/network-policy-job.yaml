@@ -37,11 +37,13 @@ spec:
           args:
             - |
               echo "Expecting MySQL port 3306 to be blocked for this untrusted Pod..."
-              # Service environment variables are injected by kubelet, so the
-              # test reaches the ClusterIP directly and cannot pass merely
-              # because DNS was also denied.
-              test -n "${MYSQL_SERVICE_SERVICE_HOST:-}"
-              if nc -z -w 5 "$MYSQL_SERVICE_SERVICE_HOST" 3306; then
+              # mysql-service is headless, so Kubernetes does not inject a
+              # *_SERVICE_HOST variable. Resolve it first and require a Pod IP
+              # so a DNS failure cannot be mistaken for policy enforcement.
+              mysql_ip="$(nslookup mysql-service | awk '/^Address: / { address=$2 } END { print address }')"
+              test -n "$mysql_ip"
+              echo "Resolved mysql-service to $mysql_ip; attempting a direct TCP connection..."
+              if nc -z -w 5 "$mysql_ip" 3306; then
                 echo "FAIL: MySQL was reachable. The CNI is not enforcing the policy or the policy is too broad."
                 exit 1
               fi

@@ -33,7 +33,7 @@ spec:
             - name: HTTP_URL
               value: http://kong-gateway-proxy.kong.svc.cluster.local/
             - name: HTTPS_URL
-              value: https://kong-gateway-proxy.kong.svc.cluster.local/
+              value: https://kong-gateway-proxy.kong.svc.cluster.local/livez.php
           command:
             - /bin/sh
             - -ec
@@ -48,19 +48,18 @@ spec:
               grep -qi '^X-Request-ID:' /tmp/headers
 
               echo "Checking the 60 requests/minute rate limit across two Kong replicas..."
-              ok=0
-              limited=0
-              unexpected=0
+              # Reuse one HTTPS connection so process startup and TLS handshake
+              # time cannot push this fixed-window test across a minute boundary.
+              set --
               request=1
               while [ "$request" -le 150 ]; do
-                status="$(curl -sSk -o /dev/null -w '%{http_code}' -H 'Host: cnas.local' "$HTTPS_URL")"
-                case "$status" in
-                  200) ok=$((ok + 1)) ;;
-                  429) limited=$((limited + 1)) ;;
-                  *) unexpected=$((unexpected + 1)) ;;
-                esac
+                set -- "$@" -o /dev/null "$HTTPS_URL"
                 request=$((request + 1))
               done
+              curl -sSk -w '%{http_code}\n' -H 'Host: cnas.local' "$@" > /tmp/status-codes
+              ok="$(grep -c '^200$' /tmp/status-codes || true)"
+              limited="$(grep -c '^429$' /tmp/status-codes || true)"
+              unexpected="$(grep -vc -e '^200$' -e '^429$' /tmp/status-codes || true)"
               echo "successful=$ok rate_limited=$limited unexpected=$unexpected"
               test "$limited" -gt 0
               test "$unexpected" -eq 0
