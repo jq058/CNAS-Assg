@@ -56,51 +56,63 @@ pipeline {
             }
         }
 
-        stage('Lint and unit tests') {
-            steps {
-                sh '''
-                    set -eu
+stage('Lint and unit tests') {
+    steps {
+        sh '''
+            set -eu
 
-                    docker run --rm \
-                      -v "$WORKSPACE:/workspace:ro" \
-                      -w /workspace \
-                      php:8.2-cli-alpine \
-                      sh -c 'find php-app tests/php -type f -name "*.php" -print0 | xargs -0 -n1 php -l'
+            echo "Jenkins workspace:"
+            echo "$WORKSPACE"
 
-                    docker run --rm \
-                      -v "$WORKSPACE:/workspace:ro" \
-                      -w /workspace \
-                      php:8.2-cli-alpine \
-                      php tests/php/run.php
+            echo "Checking repository contents inside Jenkins:"
+            test -d php-app
+            test -d tests/php
+            test -f tests/php/run.php
 
-                    DB_PASSWORD=ci-validation-only \
-                    MYSQL_ROOT_PASSWORD=ci-validation-only \
-                    REDIS_PASSWORD=ci-validation-only \
-                      docker compose config --quiet
+            docker run --rm \
+              --volumes-from "$HOSTNAME" \
+              -w "$WORKSPACE" \
+              php:8.2-cli-alpine \
+              sh -ec 'find php-app tests/php -type f -name "*.php" -exec php -l {} \\;'
 
-                    kubectl kustomize k8s > rendered-kubernetes.yaml
-                '''
-            }
-        }
+            docker run --rm \
+              --volumes-from "$HOSTNAME" \
+              -w "$WORKSPACE" \
+              php:8.2-cli-alpine \
+              php tests/php/run.php
+
+            DB_PASSWORD=ci-validation-only \
+            MYSQL_ROOT_PASSWORD=ci-validation-only \
+            REDIS_PASSWORD=ci-validation-only \
+              docker compose config --quiet
+
+            kubectl kustomize k8s > rendered-kubernetes.yaml
+        '''
+    }
+}
 
         stage('Repository security gates') {
-            steps {
-                sh '''
-                    set -eu
+    steps {
+        sh '''
+            set -eu
 
-                    trivy fs \
-                      --exit-code 1 \
-                      --severity HIGH,CRITICAL \
-                      --scanners vuln,misconfig,secret \
-                      --skip-files tests/k8s/policy-deny-latest.yaml \
-                      --skip-files tests/k8s/policy-disallow-privileged.yaml \
-                      --skip-files tests/k8s/policy-require-nonroot.yaml \
-                      --skip-files tests/k8s/policy-require-resources.yaml \
-                      --no-progress \
-                      .
-                '''
-            }
-        }
+            docker run --rm \
+              --volumes-from "$HOSTNAME" \
+              -w "$WORKSPACE" \
+              aquasec/trivy:latest \
+              fs \
+              --exit-code 1 \
+              --severity HIGH,CRITICAL \
+              --scanners vuln,misconfig,secret \
+              --skip-files tests/k8s/policy-deny-latest.yaml \
+              --skip-files tests/k8s/policy-disallow-privileged.yaml \
+              --skip-files tests/k8s/policy-require-nonroot.yaml \
+              --skip-files tests/k8s/policy-require-resources.yaml \
+              --no-progress \
+              .
+        '''
+    }
+}
 
         stage('Build immutable image') {
             steps {
@@ -179,29 +191,37 @@ pipeline {
         }
 
         stage('Image security and SBOM') {
-            steps {
-                sh '''
-                    set -eu
+    steps {
+        sh '''
+            set -eu
 
-                    trivy image \
-                      --exit-code 1 \
-                      --severity HIGH,CRITICAL \
-                      --ignore-unfixed \
-                      --no-progress \
-                      "$DOCKER_IMAGE_NAME:$IMAGE_TAG"
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              aquasec/trivy:latest \
+              image \
+              --exit-code 1 \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --no-progress \
+              "$DOCKER_IMAGE_NAME:$IMAGE_TAG"
 
-                    trivy image \
-                      --format cyclonedx \
-                      --output sbom.cdx.json \
-                      "$DOCKER_IMAGE_NAME:$IMAGE_TAG"
-                '''
+            docker run --rm \
+              --volumes-from "$HOSTNAME" \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -w "$WORKSPACE" \
+              aquasec/trivy:latest \
+              image \
+              --format cyclonedx \
+              --output sbom.cdx.json \
+              "$DOCKER_IMAGE_NAME:$IMAGE_TAG"
+        '''
 
-                archiveArtifacts(
-                    artifacts: 'sbom.cdx.json,rendered-kubernetes.yaml',
-                    fingerprint: true
-                )
-            }
-        }
+        archiveArtifacts(
+            artifacts: 'sbom.cdx.json,rendered-kubernetes.yaml',
+            fingerprint: true
+        )
+    }
+}
 
         stage('Push immutable image') {
             steps {
@@ -303,7 +323,7 @@ kind: Kustomization
 resources:
   - ../..
 images:
-  - name: sinoceratops/cnas-php-app
+  - name: jqii/cnas-php-app
     newName: ${env.DOCKER_IMAGE_NAME}
     newTag: ${env.IMAGE_TAG}
 """
