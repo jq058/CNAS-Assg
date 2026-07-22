@@ -311,23 +311,23 @@ stage('Lint and unit tests') {
                         env.DEPLOY_STARTED = 'true'
 
                         sh '''
-                            set -eu
-                            mkdir -p k8s/overlays/ci-runtime
+                        set -eu
+                        rm -rf ci-runtime
+                        mkdir -p ci-runtime
                         '''
 
-                        writeFile(
-                            file:
-                                'k8s/overlays/ci-runtime/kustomization.yaml',
-                            text: """apiVersion: kustomize.config.k8s.io/v1beta1
+writeFile(
+    file: 'ci-runtime/kustomization.yaml',
+    text: """apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../..
+  - ../k8s
 images:
   - name: jqii/cnas-php-app
     newName: ${env.DOCKER_IMAGE_NAME}
     newTag: ${env.IMAGE_TAG}
 """
-                        )
+)
                     }
 
                     sh '''
@@ -337,7 +337,7 @@ images:
                           -f k8s/kyverno/
 
                         kubectl apply \
-                          -k k8s/overlays/ci-runtime
+                          -k ci-runtime
 
                         kubectl wait \
                           --for=condition=complete \
