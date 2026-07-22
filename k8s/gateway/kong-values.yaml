@@ -9,6 +9,10 @@ controller:
       pullPolicy: IfNotPresent
     watchNamespaces:
       - cnas
+      # KIC must also discover the chart-managed Admin API service here.
+      # Including the release namespace makes the chart render the required
+      # EndpointSlice RBAC for that discovery while retaining namespace scope.
+      - kong
     rbac:
       enableClusterRoles: true
       gatewayAPI:
