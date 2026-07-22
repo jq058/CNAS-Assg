@@ -3,7 +3,12 @@ FROM jenkins/jenkins:lts-jdk21
 USER root
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl gnupg git gettext-base && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        gnupg \
+        git \
+        gettext-base && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/debian/gpg \
       -o /etc/apt/keyrings/docker.asc && \
@@ -11,7 +16,8 @@ RUN apt-get update && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
       > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
-    apt-get install -y docker-ce-cli && \
+    apt-get install -y --no-install-recommends \
+        docker-ce-cli && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -LO "https://dl.k8s.io/release/v1.33.0/bin/linux/amd64/kubectl" && \
