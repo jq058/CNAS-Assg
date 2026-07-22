@@ -40,6 +40,7 @@ spec:
             runAsUser: 999
             runAsGroup: 999
             runAsNonRoot: true
+            readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
@@ -74,6 +75,13 @@ spec:
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql
+            # MySQL writes its Unix socket/PID and temporary tables at runtime.
+            # Keep those paths writable without making the image root filesystem
+            # writable.
+            - name: mysql-runtime
+              mountPath: /var/run/mysqld
+            - name: mysql-tmp
+              mountPath: /tmp
           readinessProbe:
             exec:
               command:
@@ -105,3 +113,9 @@ spec:
         - name: mysql-storage
           persistentVolumeClaim:
             claimName: mysql-pvc
+        - name: mysql-runtime
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: mysql-tmp
+          emptyDir:
+            sizeLimit: 512Mi
