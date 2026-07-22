@@ -1,27 +1,33 @@
-FROM php:8.2-apache-bookworm
+# Build stage: compile PHP extensions
+FROM php:8.2-apache-bookworm AS builder
 
 ARG REDIS_EXTENSION_VERSION=6.3.0
 
-# Install build dependencies, compile the required PHP extensions,
-# and remove all development packages from the final runtime image.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        curl \
         $PHPIZE_DEPS; \
     docker-php-ext-install -j"$(nproc)" \
         mysqli \
         pdo_mysql; \
     pecl install "redis-${REDIS_EXTENSION_VERSION}"; \
-    docker-php-ext-enable redis; \
-    apt-get purge -y --auto-remove \
-        $PHPIZE_DEPS \
-        libc6-dev \
-        linux-libc-dev; \
-    rm -rf \
-        /var/lib/apt/lists/* \
-        /tmp/pear \
-        /root/.pearrc
+    docker-php-ext-enable redis
+
+# Runtime stage: clean base without build dependencies
+FROM php:8.2-apache-bookworm
+
+ARG REDIS_EXTENSION_VERSION=6.3.0
+
+# Install only runtime dependencies
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        curl; \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy compiled PHP extensions from builder
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
 RUN a2enmod headers rewrite \
     && sed -ri \
