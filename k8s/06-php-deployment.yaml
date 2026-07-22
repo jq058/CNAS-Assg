@@ -86,7 +86,7 @@ spec:
         - name: php-app
           # Jenkins replaces this explicit bootstrap tag with the immutable build
           # tag before deployment; a mutable `latest` tag is never used.
-          image: sinoceratops/cnas-php-app:bootstrap
+          image: jqii/cnas-php-app:bootstrap
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
