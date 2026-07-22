@@ -14,17 +14,7 @@ RUN set -eux; \
         pdo_mysql; \
     pecl install "redis-${REDIS_EXTENSION_VERSION}"; \
     docker-php-ext-enable redis; \
-    apt-get purge -y --auto-remove \
-        autoconf \
-        dpkg-dev \
-        file \
-        g++ \
-        gcc \
-        libc6-dev \
-        linux-libc-dev \
-        make \
-        pkg-config \
-        re2c; \
+    apt-get purge -y --auto-remove $PHPIZE_DEPS; \
     rm -rf \
         /var/lib/apt/lists/* \
         /tmp/pear \
