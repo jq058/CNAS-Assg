@@ -2,6 +2,7 @@ FROM php:8.2-apache-bookworm
 
 ARG REDIS_EXTENSION_VERSION=6.3.0
 
+# Build only the extensions used by the application.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -12,9 +13,17 @@ RUN set -eux; \
     pecl install "redis-${REDIS_EXTENSION_VERSION}"; \
     docker-php-ext-enable redis; \
     apt-get purge -y --auto-remove \
-        $PHPIZE_DEPS \
-        linux-libc-dev; \
-    rm -rf /var/lib/apt/lists/* /tmp/pear
+        autoconf \
+        dpkg-dev \
+        file \
+        g++ \
+        gcc \
+        libc6-dev \
+        linux-libc-dev \
+        make \
+        pkg-config \
+        re2c; \
+    rm -rf /var/lib/apt/lists/* /tmp/pear ~/.pearrc
 
 RUN a2enmod headers rewrite \
     && sed -ri \
