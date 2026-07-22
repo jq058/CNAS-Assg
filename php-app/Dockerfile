@@ -2,13 +2,19 @@ FROM php:8.2-apache-bookworm
 
 ARG REDIS_EXTENSION_VERSION=6.3.0
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl $PHPIZE_DEPS \
-    && docker-php-ext-install -j"$(nproc)" mysqli pdo_mysql \
-    && pecl install "redis-${REDIS_EXTENSION_VERSION}" \
-    && docker-php-ext-enable redis \
-    && apt-get purge -y --auto-remove $PHPIZE_DEPS \
-    && rm -rf /var/lib/apt/lists/* /tmp/pear
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        curl \
+        $PHPIZE_DEPS; \
+    apt-get install -y --only-upgrade linux-libc-dev; \
+    docker-php-ext-install -j"$(nproc)" mysqli pdo_mysql; \
+    pecl install "redis-${REDIS_EXTENSION_VERSION}"; \
+    docker-php-ext-enable redis; \
+    apt-get purge -y --auto-remove \
+        $PHPIZE_DEPS \
+        linux-libc-dev; \
+    rm -rf /var/lib/apt/lists/* /tmp/pear
 
 RUN a2enmod headers rewrite \
     && sed -ri \
