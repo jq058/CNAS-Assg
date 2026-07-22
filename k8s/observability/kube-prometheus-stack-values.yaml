@@ -53,10 +53,12 @@ grafana:
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 500m
-      memory: 384Mi
+      # Grafana 13's dashboard search index and bundled plugins exceeded the
+      # previous 384Mi limit when the CNAS dashboard was opened.
+      memory: 768Mi
   persistence:
     enabled: false
 
