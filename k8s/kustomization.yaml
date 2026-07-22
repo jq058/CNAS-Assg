@@ -29,6 +29,6 @@ resources:
 # CI can override this image safely with Kustomize's image transformer. The
 # checked-in tag is explicit so the base itself also passes admission policy.
 images:
-  - name: sinoceratops/cnas-php-app
-    newName: sinoceratops/cnas-php-app
+  - name: jqii/cnas-php-app
+    newName: jqii/cnas-php-app
     newTag: bootstrap

@@ -101,8 +101,8 @@ $env:REDIS_PASSWORD = "<different-redis-password>"
 Build and load the local bootstrap image, then deploy the Kustomize base:
 
 ~~~powershell
-docker build -t sinoceratops/cnas-php-app:bootstrap .
-kind load docker-image sinoceratops/cnas-php-app:bootstrap --name cnas-cluster
+docker build -t jqii/cnas-php-app:bootstrap .
+kind load docker-image jqii/cnas-php-app:bootstrap --name cnas-cluster
 kubectl apply -k k8s
 kubectl -n cnas wait --for=condition=complete job/db-migration-v2 --timeout=300s
 kubectl -n cnas rollout status deployment/php-app --timeout=300s

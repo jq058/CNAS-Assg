@@ -63,8 +63,8 @@ explicit bootstrap image first. Jenkins instead overrides this image with its
 immutable `<build-number>-<git-sha>` tag through a Kustomize overlay.
 
 ```bash
-docker build -t sinoceratops/cnas-php-app:bootstrap .
-kind load docker-image sinoceratops/cnas-php-app:bootstrap --name cnas-cluster
+docker build -t jqii/cnas-php-app:bootstrap .
+kind load docker-image jqii/cnas-php-app:bootstrap --name cnas-cluster
 ```
 
 ```bash
