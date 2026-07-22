@@ -23,7 +23,13 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         curl; \
-    rm -rf /var/lib/apt/lists/*
+    apt-get purge -y --auto-remove \
+        libc6-dev \
+        linux-libc-dev; \
+    rm -rf \
+        /var/lib/apt/lists/* \
+        /tmp/* \
+        /var/tmp/*
 
 # Copy compiled PHP extensions from builder
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
