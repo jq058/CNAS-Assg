@@ -14,7 +14,10 @@ RUN set -eux; \
         pdo_mysql; \
     pecl install "redis-${REDIS_EXTENSION_VERSION}"; \
     docker-php-ext-enable redis; \
-    apt-get purge -y --auto-remove $PHPIZE_DEPS; \
+    apt-get purge -y --auto-remove \
+        $PHPIZE_DEPS \
+        libc6-dev \
+        linux-libc-dev; \
     rm -rf \
         /var/lib/apt/lists/* \
         /tmp/pear \
