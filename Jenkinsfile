@@ -109,11 +109,11 @@ pipeline {
                      * --pull obtains the newest version of the configured
                      * base image.
                      *
-                     * --no-cache ensures Jenkins does not reuse the earlier
-                     * vulnerable Docker build layers while validating the fix.
+                     * --no-cache prevents Jenkins from reusing older,
+                     * vulnerable Docker build layers while validating
+                     * the Dockerfile security fix.
                      *
-                     * The final "." is required because it is the Docker
-                     * build context.
+                     * The final "." is the Docker build context.
                      */
                     appImage = docker.build(
                         "${env.DOCKER_IMAGE_NAME}:${env.IMAGE_TAG}",
@@ -135,11 +135,8 @@ pipeline {
                       "$DOCKER_IMAGE_NAME:$IMAGE_TAG" \
                       > /dev/null
 
-                    /*
-                     * linux-libc-dev is a build-time development package.
-                     * The Dockerfile should remove it after compiling the
-                     * required PHP extensions.
-                     */
+                    # linux-libc-dev is only required while compiling.
+                    # It should not remain in the final runtime image.
                     docker run --rm \
                       "$DOCKER_IMAGE_NAME:$IMAGE_TAG" \
                       sh -c '
@@ -154,11 +151,8 @@ pipeline {
                         echo "PASS: linux-libc-dev is not installed."
                       '
 
-                    /*
-                     * Confirm that the extensions required by the
-                     * application remain available after build dependencies
-                     * are removed.
-                     */
+                    # Confirm that removing the build dependencies did not
+                    # remove PHP extensions required by the application.
                     docker run --rm \
                       "$DOCKER_IMAGE_NAME:$IMAGE_TAG" \
                       php -r '
