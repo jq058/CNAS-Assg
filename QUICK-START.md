@@ -35,7 +35,7 @@ docker compose down -v
 
 ## Kubernetes coursework environment
 
-Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, OpenSSL, and PowerShell 7.
+Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, and PowerShell 7.
 
 ~~~powershell
 .\k8s\scripts\create-kind-cluster.ps1

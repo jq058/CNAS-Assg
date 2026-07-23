@@ -62,7 +62,7 @@ Write-Host "Installing Kyverno chart $kyvernoChartVersion..."
     --namespace kyverno `
     --create-namespace `
     --version $kyvernoChartVersion `
-    --set admissionController.replicas=2 `
+    --set admissionController.replicas=1 `
     --wait `
     --timeout 10m
 if ($LASTEXITCODE -ne 0) { throw 'Kyverno installation failed.' }

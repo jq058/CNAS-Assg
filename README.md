@@ -79,7 +79,7 @@ The tests cover output encoding, validation, database field limits, UTF-8 handli
 
 ## Kubernetes coursework profile
 
-Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, OpenSSL, and PowerShell 7 or Bash.
+Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, and PowerShell 7 or Bash.
 
 Create the pinned four-node cluster and install Calico, Gateway API, Kong, Kyverno, and Metrics Server:
 

@@ -1,7 +1,7 @@
 # Pinned Kong Gateway installation for the local Kind environment.
 # Chart: kong/ingress 0.24.0
 controller:
-  replicaCount: 2
+  replicaCount: 1
   ingressController:
     image:
       repository: kong/kubernetes-ingress-controller
@@ -30,11 +30,10 @@ controller:
         cpu: 250m
         memory: 256Mi
   podDisruptionBudget:
-    enabled: true
-    minAvailable: 1
+    enabled: false
 
 gateway:
-  replicaCount: 2
+  replicaCount: 1
   image:
     repository: kong
     tag: "3.9.1"
@@ -75,8 +74,7 @@ gateway:
       cpu: 100m
       memory: 128Mi
   podDisruptionBudget:
-    enabled: true
-    minAvailable: 1
+    enabled: false
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:

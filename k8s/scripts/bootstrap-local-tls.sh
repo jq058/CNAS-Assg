@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 
-for command_name in kubectl openssl; do
+for command_name in kubectl docker; do
   command -v "${command_name}" >/dev/null 2>&1 || {
     echo "Required command is missing: ${command_name}" >&2
     exit 1
@@ -20,10 +20,18 @@ cleanup_certificate_directory() {
 }
 trap cleanup_certificate_directory EXIT
 
-openssl req -x509 -newkey rsa:2048 -sha256 -nodes \
+# Use a Docker container for certificate generation so the host does not
+# need OpenSSL installed.
+docker run --rm \
+  -v "${certificate_directory}:/certs" \
+  alpine/openssl req \
+  -x509 \
+  -newkey rsa:2048 \
+  -sha256 \
+  -nodes \
   -days 30 \
-  -keyout "${certificate_directory}/tls.key" \
-  -out "${certificate_directory}/tls.crt" \
+  -keyout /certs/tls.key \
+  -out /certs/tls.crt \
   -subj "/CN=cnas.local" \
   -addext "subjectAltName=DNS:cnas.local"
 
