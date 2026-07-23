@@ -52,12 +52,17 @@ spec:
                   set -eu
                   umask 077
                   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+                  backup_file="/backup/cnas-${stamp}.sql"
                   MYSQL_PWD="$MYSQL_PASSWORD" mysqldump \
                     -h mysql-service \
                     -u "$MYSQL_USER" \
                     --single-transaction \
                     --no-tablespaces \
-                    "$MYSQL_DATABASE" > "/backup/cnas-${stamp}.sql"
+                    "$MYSQL_DATABASE" > "$backup_file"
+                  test -s "$backup_file"
+                  echo "Backup created: $backup_file"
+                  ls -lh "$backup_file"
+                  sha256sum "$backup_file"
                   find /backup -type f -name 'cnas-*.sql' -mtime +7 -delete
               env:
                 - name: MYSQL_DATABASE

@@ -18,15 +18,6 @@ spec:
           annotations:
             summary: One or more CNAS application replicas are unavailable
             description: Ready replicas are below the Deployment's desired replica count.
-        - alert: CnasPodRestarting
-          expr: increase(kube_pod_container_status_restarts_total{namespace="cnas"}[10m]) > 2
-          for: 1m
-          labels:
-            severity: warning
-            component: workload
-          annotations:
-            summary: A CNAS container is repeatedly restarting
-            description: A container restarted more than twice during the last ten minutes.
         - alert: CnasHpaAtMaximum
           expr: kube_horizontalpodautoscaler_status_current_replicas{namespace="cnas", horizontalpodautoscaler="php-app-hpa"} >= kube_horizontalpodautoscaler_spec_max_replicas{namespace="cnas", horizontalpodautoscaler="php-app-hpa"}
           for: 10m

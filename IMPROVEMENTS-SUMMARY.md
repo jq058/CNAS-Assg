@@ -6,7 +6,7 @@ The hardened coursework design improves the original repository in these areas:
 - non-root Apache/PHP on port 8080, read-only runtime filesystems, authenticated Redis sessions, and dependency-aware readiness;
 - one-control-plane/three-worker Kind topology with Calico NetworkPolicy enforcement;
 - Kong Gateway API HTTPS routing, redirect, rate limiting, and correlation IDs;
-- versioned database migrations, persistent MySQL/Redis, logical backup, and isolated restore validation;
+- versioned database migrations, persistent MySQL/Redis, logical backup via scheduled CronJob;
 - topology spreading, HPA, PDB, probes, rolling deployment, and continuity testing;
 - restricted Pod Security and Kyverno controls for root, privilege, resources, and mutable tags;
 - Prometheus, Grafana, Alertmanager, Loki, Alloy, and MySQL monitoring;

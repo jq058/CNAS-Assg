@@ -143,13 +143,17 @@ This proves application Pod self-healing and Service continuity. It does **not**
 
 ## 7. Backup exercise
 
-Create and structurally validate a consistent logical backup:
+Trigger a backup Job from the CronJob to capture evidence:
 
 ```powershell
-.\scripts\Test-MySqlBackupRestore.ps1
+$jobName = "mysql-backup-demo-" + (Get-Date -Format "yyyyMMddHHmmss")
+kubectl create job --from=cronjob/mysql-backup $jobName -n cnas
+kubectl wait --for=condition=complete "job/$jobName" -n cnas --timeout=180s
+kubectl logs "job/$jobName" -n cnas
+kubectl delete job $jobName -n cnas
 ```
 
-The evidence records the backup size, SHA-256 digest, source Pod and timestamp. The automated isolated restore test has been removed to keep the coursework environment lightweight. The SQL dump contains assignment data, so review and redact personal data before sharing it.
+Expected output includes the backup filename, file size, and SHA-256 digest. The SQL dump contains assignment data, so review and redact personal data before sharing it.
 
 ## 8. Alert exercises
 

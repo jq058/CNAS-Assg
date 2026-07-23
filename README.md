@@ -123,7 +123,7 @@ Use the evidence-first [validation and demonstration runbook](docs/DEMO-RUNBOOK.
 - Pod Security and Kyverno rejection tests;
 - HPA scale-out and scale-down;
 - Pod deletion, replacement, and request continuity;
-- MySQL backup and isolated restore;
+- MySQL backup and restored via the CronJob;
 - dashboard, log, and alert evidence;
 - Git-to-image-to-running-Deployment traceability.
 
