@@ -8,7 +8,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $KubePrometheusStackVersion = "86.0.0"
-$BlackboxExporterVersion = "11.15.1"
 $LokiVersion = "18.5.1"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ObservabilityDirectory = Join-Path $RepoRoot "k8s\observability"
@@ -201,16 +200,7 @@ FLUSH PRIVILEGES;
         "--values", (Join-Path $ObservabilityDirectory "loki-values.yaml"),
         "--atomic", "--wait", "--timeout", "10m"
     )
-    Invoke-Checked -Command "helm" -Arguments @(
-        "upgrade", "--install", "blackbox", "prometheus-community/prometheus-blackbox-exporter",
-        "--version", $BlackboxExporterVersion,
-        "--namespace", "monitoring",
-        "--values", (Join-Path $ObservabilityDirectory "blackbox-values.yaml"),
-        "--atomic", "--wait", "--timeout", "10m"
-    )
-
     Invoke-Checked -Command "kubectl" -Arguments @("apply", "-f", (Join-Path $ObservabilityDirectory "alloy.yaml"))
-    Invoke-Checked -Command "kubectl" -Arguments @("apply", "-f", (Join-Path $ObservabilityDirectory "probes.yaml"))
     Invoke-Checked -Command "kubectl" -Arguments @("apply", "-f", (Join-Path $ObservabilityDirectory "prometheus-rules.yaml"))
     Invoke-Checked -Command "kubectl" -Arguments @("apply", "-f", (Join-Path $ObservabilityDirectory "grafana-dashboard.yaml"))
 

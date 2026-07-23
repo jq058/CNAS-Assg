@@ -19,7 +19,7 @@ flowchart LR
     CI["Jenkins\nlint • test • scan • build • SBOM • deploy • smoke"] --> REG["Docker registry\nimmutable build tag"]
     REG --> K["Kind cluster\n1 control plane + 3 workers"]
     CI --> K
-    K --> OBS["Prometheus • Grafana • Alertmanager\nLoki • Alloy • blackbox probes"]
+    K --> OBS["Prometheus • Grafana • Alertmanager\nLoki • Alloy"]
     POL["Kyverno admission policies"] --> K
 ```
 
@@ -33,7 +33,7 @@ flowchart LR
 | Data | Single MySQL StatefulSet and PVC | Stable identity and persistent coursework data with tested backup/restore. |
 | Network security | Calico and default-deny NetworkPolicies | Enforce only gateway→PHP, PHP→MySQL/Redis, and required DNS flows. |
 | Admission security | Restricted Pod Security labels and Kyverno policies | Reject privileged/root workloads, missing resources, and mutable image tags. |
-| Observability | Prometheus stack, blackbox exporter, MySQL exporter, Loki and Alloy | Metrics, dashboards, alerts, and centralized application/platform logs. |
+| Observability | Prometheus stack, MySQL exporter, Loki and Alloy | Metrics, dashboards, alerts, and centralized application/platform logs. |
 | Delivery | Jenkins, Trivy, Docker Hub, Kustomize | Trace one commit through tests and security gates to the running image. |
 
 ## Trust boundaries and sensitive flows

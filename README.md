@@ -33,7 +33,7 @@ The coursework profile uses:
 - MySQL as a StatefulSet with persistent storage, versioned schema migration, logical backups, and a restore test;
 - HPA, topology spreading, rolling updates, and a PodDisruptionBudget;
 - restricted Pod Security plus Kyverno admission policies;
-- Prometheus, Alertmanager, Grafana, Loki, Alloy, blackbox probes, and a MySQL exporter;
+- Prometheus, Alertmanager, Grafana, Loki, Alloy, and a MySQL exporter;
 - Jenkins gates for linting, tests, Trivy scans, SBOM generation, immutable image delivery, smoke tests, and guarded rollback.
 
 See [Architecture](docs/ARCHITECTURE.md) for trust boundaries, deployment decisions, requirement mapping, and honest limitations.

@@ -9,7 +9,7 @@ The hardened coursework design improves the original repository in these areas:
 - versioned database migrations, persistent MySQL/Redis, logical backup, and isolated restore validation;
 - topology spreading, HPA, PDB, probes, rolling deployment, and continuity testing;
 - restricted Pod Security and Kyverno controls for root, privilege, resources, and mutable tags;
-- Prometheus, Grafana, Alertmanager, Loki, Alloy, blackbox, and MySQL monitoring;
+- Prometheus, Grafana, Alertmanager, Loki, Alloy, and MySQL monitoring;
 - Jenkins lint, test, Trivy, SBOM, immutable image, exact deployment, smoke check, and guarded rollback;
 - evidence scripts that capture raw results, metadata, exit codes, timestamps, and hashes.
 

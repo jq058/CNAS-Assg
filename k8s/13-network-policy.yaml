@@ -146,31 +146,6 @@ spec:
         - protocol: TCP
           port: 6379
 ---
-# The blackbox exporter performs the internal readiness probe. Both namespace
-# and Pod identity must match; other monitoring workloads cannot call the app.
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-blackbox-to-php
-  namespace: cnas
-spec:
-  podSelector:
-    matchLabels:
-      app: php-app
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: monitoring
-          podSelector:
-            matchLabels:
-              cnas.openai/role: blackbox
-      ports:
-        - protocol: TCP
-          port: 8080
----
 # Validation Jobs are explicitly trusted for application/gateway tests. The
 # negative NetworkPolicy test is labelled access-profile=untrusted and remains
 # isolated by the default-deny policy.

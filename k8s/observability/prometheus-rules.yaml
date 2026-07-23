@@ -37,7 +37,7 @@ spec:
             component: application
           annotations:
             summary: CNAS application latency is high
-            description: The blackbox probe has taken more than one second for five minutes.
+            description: The HTTP probe has taken more than one second for five minutes.
         - alert: CnasDeploymentReplicasUnavailable
           expr: kube_deployment_status_replicas_available{namespace="cnas", deployment="php-app"} < kube_deployment_spec_replicas{namespace="cnas", deployment="php-app"}
           for: 2m

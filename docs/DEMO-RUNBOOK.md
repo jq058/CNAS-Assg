@@ -28,7 +28,6 @@ The installer uses these pinned Helm chart versions:
 | Component | Chart/version |
 |---|---|
 | Prometheus Operator, Prometheus, Alertmanager, Grafana, kube-state-metrics and node-exporter | `prometheus-community/kube-prometheus-stack` `86.0.0` |
-| HTTP blackbox exporter | `prometheus-community/prometheus-blackbox-exporter` `11.15.1` |
 | Loki | `grafana-community/loki` `18.5.1` |
 | Alloy log collector | Container `grafana/alloy:v1.16.1` |
 | MySQL exporter | Container `prom/mysqld-exporter:v0.19.0` |
@@ -39,7 +38,7 @@ Install the stack:
 .\scripts\Install-Observability.ps1
 ```
 
-The script generates—not commits—random Grafana and MySQL exporter credentials. It creates a least-privilege MySQL monitoring account, deploys the exporters, and waits for readiness.
+The script generatesâ€”not commitsâ€”random Grafana and MySQL exporter credentials. It creates a least-privilege MySQL monitoring account, deploys the exporters, and waits for readiness.
 
 Open Grafana locally:
 
