@@ -69,32 +69,12 @@ data:
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 3, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}}}, "overrides": []},
-          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
-          "id": 9,
-          "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
-          "targets": [{"expr": "mysql_global_status_threads_connected", "legendFormat": "Connected threads", "refId": "A"}, {"expr": "rate(mysql_global_status_queries[5m])", "legendFormat": "Queries/sec", "refId": "B"}],
-          "title": "MySQL activity",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 3, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}}, "unit": "percentunit"}, "overrides": []},
           "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
           "id": 10,
           "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
           "targets": [{"expr": "kubelet_volume_stats_used_bytes{namespace=\"cnas\", persistentvolumeclaim=\"mysql-pvc\"} / kubelet_volume_stats_capacity_bytes{namespace=\"cnas\", persistentvolumeclaim=\"mysql-pvc\"}", "legendFormat": "mysql-pvc", "refId": "A"}],
           "title": "MySQL PVC utilization",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 3, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}}}, "overrides": []},
-          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
-          "id": 11,
-          "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
-          "targets": [{"expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"cnas\"}[15m]))", "legendFormat": "{{pod}}", "refId": "A"}],
-          "title": "Container restarts (15m)",
           "type": "timeseries"
         },
         {

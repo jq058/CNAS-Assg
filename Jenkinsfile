@@ -33,7 +33,7 @@ pipeline {
     }
 
     stages {
-        stage('Checkout and identify source') {
+        stage('Checkout') {
             steps {
                 checkout scm
 
@@ -56,42 +56,37 @@ pipeline {
             }
         }
 
-stage('Lint and unit tests') {
-    steps {
-        sh '''
-            set -eu
+        stage('Validate Source and Configuration') {
+            steps {
+                sh '''
+                    set -eu
 
-            echo "Jenkins workspace:"
-            echo "$WORKSPACE"
+                    echo "Jenkins workspace:"
+                    echo "$WORKSPACE"
 
-            echo "Checking repository contents inside Jenkins:"
-            test -d php-app
-            test -d tests/php
-            test -f tests/php/run.php
+                    echo "Checking repository contents inside Jenkins:"
+                    test -d php-app
+                    test -d tests/php
+                    test -f tests/php/run.php
 
-            docker run --rm \
-              --volumes-from "$HOSTNAME" \
-              -w "$WORKSPACE" \
-              php:8.2-cli-alpine \
-              sh -ec 'find php-app tests/php -type f -name "*.php" -exec php -l {} \\;'
+                    docker run --rm \
+                      --volumes-from "$HOSTNAME" \
+                      -w "$WORKSPACE" \
+                      php:8.2-cli-alpine \
+                      sh -ec 'find php-app tests/php -type f -name "*.php" -exec php -l {} \\;'
 
-            docker run --rm \
-              --volumes-from "$HOSTNAME" \
-              -w "$WORKSPACE" \
-              php:8.2-cli-alpine \
-              php tests/php/run.php
+                    docker run --rm \
+                      --volumes-from "$HOSTNAME" \
+                      -w "$WORKSPACE" \
+                      php:8.2-cli-alpine \
+                      php tests/php/run.php
 
-            DB_PASSWORD=ci-validation-only \
-            MYSQL_ROOT_PASSWORD=ci-validation-only \
-            REDIS_PASSWORD=ci-validation-only \
-              docker compose config --quiet
+                    kubectl kustomize k8s > rendered-kubernetes.yaml
+                '''
+            }
+        }
 
-            kubectl kustomize k8s > rendered-kubernetes.yaml
-        '''
-    }
-}
-
-        stage('Repository security gates') {
+        stage('Repository Security Scan') {
     steps {
         sh '''
             set -eu
@@ -114,7 +109,7 @@ stage('Lint and unit tests') {
     }
 }
 
-        stage('Build immutable image') {
+        stage('Build and Verify Image') {
             steps {
                 script {
                     /*
@@ -132,11 +127,7 @@ stage('Lint and unit tests') {
                         '--pull --no-cache .'
                     )
                 }
-            }
-        }
 
-        stage('Verify runtime image contents') {
-            steps {
                 sh '''
                     set -eu
 
@@ -190,7 +181,7 @@ stage('Lint and unit tests') {
             }
         }
 
-        stage('Image security and SBOM') {
+        stage('Image Security and SBOM') {
     steps {
         sh '''
             set -eu
@@ -223,7 +214,7 @@ stage('Lint and unit tests') {
     }
 }
 
-        stage('Push immutable image') {
+        stage('Push Immutable Image') {
             steps {
                 script {
                     docker.withRegistry(
@@ -236,7 +227,7 @@ stage('Lint and unit tests') {
             }
         }
 
-        stage('Inject runtime secrets') {
+        stage('Deploy and Verify') {
             steps {
                 withKubeConfig([
                     credentialsId: env.KUBERNETES_CREDENTIALS_ID
@@ -279,27 +270,19 @@ stage('Lint and unit tests') {
                               -o name
                         '''
                     }
-                }
-            }
-        }
 
-        stage('Deploy exact build') {
-            steps {
-                withKubeConfig([
-                    credentialsId: env.KUBERNETES_CREDENTIALS_ID
-                ]) {
                     script {
                         env.DEPLOY_STARTED = 'true'
 
                         sh '''
-                        set -eu
-                        rm -rf ci-runtime
-                        mkdir -p ci-runtime
+                            set -eu
+                            rm -rf ci-runtime
+                            mkdir -p ci-runtime
                         '''
 
-writeFile(
-    file: 'ci-runtime/kustomization.yaml',
-    text: """apiVersion: kustomize.config.k8s.io/v1beta1
+                        writeFile(
+                            file: 'ci-runtime/kustomization.yaml',
+                            text: """apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../k8s
@@ -308,7 +291,7 @@ images:
     newName: ${env.DOCKER_IMAGE_NAME}
     newTag: ${env.IMAGE_TAG}
 """
-)
+                        )
                     }
 
                     sh '''
@@ -335,18 +318,6 @@ images:
                           deployment/"$DEPLOYMENT_NAME" \
                           -n "$K8S_NAMESPACE" \
                           --timeout=5m
-                    '''
-                }
-            }
-        }
-
-        stage('Verify deployment') {
-            steps {
-                withKubeConfig([
-                    credentialsId: env.KUBERNETES_CREDENTIALS_ID
-                ]) {
-                    sh '''
-                        set -eu
 
                         kubectl wait \
                           --for=condition=Ready \
