@@ -40,12 +40,23 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       topologySpreadConstraints:
-        - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
-          whenUnsatisfiable: DoNotSchedule
-          labelSelector:
-            matchLabels:
-              app: php-app
+      - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+
+    # Do not include the tainted Kind control-plane node when calculating
+    # the distribution of application pods.
+      nodeTaintsPolicy: Honor
+      nodeAffinityPolicy: Honor
+
+    # During a rolling update, spread the new ReplicaSet independently
+    # instead of counting old and new revisions together.
+      matchLabelKeys:
+      - pod-template-hash
+
+      labelSelector:
+      matchLabels:
+        app: php-app
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
