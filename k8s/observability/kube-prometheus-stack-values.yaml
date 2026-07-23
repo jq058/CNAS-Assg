@@ -34,7 +34,7 @@ grafana:
     existingSecret: cnas-grafana-admin
     userKey: admin-user
     passwordKey: admin-password
-  defaultDashboardsEnabled: true
+  defaultDashboardsEnabled: false
   sidecar:
     dashboards:
       enabled: true

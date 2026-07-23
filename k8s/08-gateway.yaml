@@ -43,7 +43,7 @@ metadata:
   name: cnas-app
   namespace: cnas
   annotations:
-    konghq.com/plugins: cnas-rate-limit,cnas-correlation-id
+    konghq.com/plugins: cnas-rate-limit
     # KIC models HTTP-to-HTTPS redirects on the HTTPS-only Kong route. A
     # separate Gateway API RequestRedirect route overlaps this route in Kong.
     konghq.com/protocols: https
@@ -74,16 +74,3 @@ config:
   policy: local
   fault_tolerant: true
   hide_client_headers: false
----
-apiVersion: configuration.konghq.com/v1
-kind: KongPlugin
-metadata:
-  name: cnas-correlation-id
-  namespace: cnas
-  annotations:
-    kubernetes.io/ingress.class: kong
-plugin: correlation-id
-config:
-  header_name: X-Request-ID
-  generator: uuid#counter
-  echo_downstream: true

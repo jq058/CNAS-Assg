@@ -43,10 +43,6 @@ spec:
               status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: cnas.local' "$HTTP_URL")"
               test "$status" = "301"
 
-              echo "Checking correlation ID on HTTPS response..."
-              curl -sSk -D /tmp/headers -o /dev/null -H 'Host: cnas.local' "$HTTPS_URL"
-              grep -qi '^X-Request-ID:' /tmp/headers
-
               echo "Checking the 60 requests/minute rate limit across two Kong replicas..."
               # Reuse one HTTPS connection so process startup and TLS handshake
               # time cannot push this fixed-window test across a minute boundary.
@@ -63,7 +59,7 @@ spec:
               echo "successful=$ok rate_limited=$limited unexpected=$unexpected"
               test "$limited" -gt 0
               test "$unexpected" -eq 0
-              echo "PASS: redirect, correlation ID, and rate limiting are active."
+              echo "PASS: HTTP-to-HTTPS redirect and rate limiting are active."
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

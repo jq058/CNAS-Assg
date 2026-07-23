@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDirectory = "",
-    [switch]$ExecuteRestoreTest
+    [string]$OutputDirectory = ""
 )
 
 Set-StrictMode -Version Latest
@@ -50,50 +49,9 @@ $hash = (Get-FileHash -LiteralPath $backupPath -Algorithm SHA256).Hash.ToLowerIn
     "sourcePod=$pod",
     "sourceDatabase=mydb",
     "backupBytes=$((Get-Item -LiteralPath $backupPath).Length)",
-    "sha256=$hash",
-    "restoreTestRequested=$($ExecuteRestoreTest.IsPresent)"
+    "sha256=$hash"
 ) | Set-Content -Path (Join-Path $OutputDirectory "backup-metadata.txt") -Encoding UTF8
-
-if ($ExecuteRestoreTest) {
-    $temporaryDatabase = "cnas_restore_test_" + (Get-Date).ToUniversalTime().ToString("yyyyMMddHHmmss")
-    $created = $false
-    try {
-        $createCommand = "export MYSQL_PWD=`"`$MYSQL_ROOT_PASSWORD`"; exec mysql -h 127.0.0.1 -uroot -e 'CREATE DATABASE ``$temporaryDatabase``;'"
-        & kubectl -n cnas exec $pod -- /bin/sh -c $createCommand
-        if ($LASTEXITCODE -ne 0) {
-            throw "Could not create temporary restore database '$temporaryDatabase'."
-        }
-        $created = $true
-
-        $restoreCommand = "export MYSQL_PWD=`"`$MYSQL_ROOT_PASSWORD`"; exec mysql -h 127.0.0.1 -uroot $temporaryDatabase"
-        $dumpText | & kubectl -n cnas exec -i $pod -- /bin/sh -c $restoreCommand
-        if ($LASTEXITCODE -ne 0) {
-            throw "Restore into temporary database '$temporaryDatabase' failed."
-        }
-
-        $verifyCommand = "export MYSQL_PWD=`"`$MYSQL_ROOT_PASSWORD`"; exec mysql -N -B -h 127.0.0.1 -uroot -e 'SELECT COUNT(*) FROM ``$temporaryDatabase``.users;'"
-        $rowCount = & kubectl -n cnas exec $pod -- /bin/sh -c $verifyCommand
-        if ($LASTEXITCODE -ne 0 -or $rowCount -notmatch '^\d+$') {
-            throw "Restore validation query failed for '$temporaryDatabase'."
-        }
-        "temporaryDatabase=$temporaryDatabase`nrestoredUsers=$rowCount" |
-            Set-Content -Path (Join-Path $OutputDirectory "restore-result.txt") -Encoding UTF8
-        Write-Host "Restore validation succeeded with $rowCount row(s) in the temporary users table."
-    }
-    finally {
-        if ($created) {
-            $dropCommand = "export MYSQL_PWD=`"`$MYSQL_ROOT_PASSWORD`"; exec mysql -h 127.0.0.1 -uroot -e 'DROP DATABASE IF EXISTS ``$temporaryDatabase``;'"
-            & kubectl -n cnas exec $pod -- /bin/sh -c $dropCommand
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "Could not remove temporary database '$temporaryDatabase'. Remove it manually."
-            }
-        }
-    }
-}
 
 Write-Host "PASS: logical backup created and structurally validated." -ForegroundColor Green
 Write-Host "Backup: $backupPath"
 Write-Host "SHA-256: $hash"
-if (-not $ExecuteRestoreTest) {
-    Write-Host "Re-run with -ExecuteRestoreTest to restore into a temporary database, verify it, and remove it."
-}

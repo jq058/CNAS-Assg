@@ -20,26 +20,6 @@ data:
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [{"options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
-          "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
-          "id": 1,
-          "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
-          "targets": [{"expr": "probe_success{service=\"php-app\"}", "legendFormat": "Application", "refId": "A"}],
-          "title": "Application availability",
-          "type": "stat"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [{"options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
-          "gridPos": {"h": 5, "w": 4, "x": 4, "y": 0},
-          "id": 2,
-          "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
-          "targets": [{"expr": "probe_success{service=\"gateway\"}", "legendFormat": "Gateway", "refId": "A"}],
-          "title": "Gateway availability",
-          "type": "stat"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [{"options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
           "gridPos": {"h": 5, "w": 4, "x": 8, "y": 0},
           "id": 3,
           "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
@@ -56,16 +36,6 @@ data:
           "targets": [{"expr": "kube_deployment_status_replicas_available{namespace=\"cnas\", deployment=\"php-app\"}", "legendFormat": "Ready", "refId": "A"}],
           "title": "Ready PHP replicas",
           "type": "stat"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "seconds", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 12, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 3, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}}, "unit": "s"}, "overrides": []},
-          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
-          "id": 5,
-          "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
-          "targets": [{"expr": "probe_duration_seconds{service=~\"php-app|gateway\"}", "legendFormat": "{{service}}", "refId": "A"}],
-          "title": "End-to-end response time",
-          "type": "timeseries"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},

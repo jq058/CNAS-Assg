@@ -38,7 +38,7 @@ Install the stack:
 .\scripts\Install-Observability.ps1
 ```
 
-The script generatesâ€”not commitsâ€”random Grafana and MySQL exporter credentials. It creates a least-privilege MySQL monitoring account, deploys the exporters, and waits for readiness.
+The script generates—not commits—random Grafana and MySQL exporter credentials. It creates a least-privilege MySQL monitoring account, deploys the exporters, and waits for readiness.
 
 Open Grafana locally:
 
