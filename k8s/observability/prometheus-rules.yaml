@@ -9,35 +9,6 @@ spec:
   groups:
     - name: cnas.availability
       rules:
-        - alert: CnasApplicationDown
-          expr: probe_success{service="php-app"} == 0 or absent(probe_success{service="php-app"})
-          for: 2m
-          labels:
-            severity: critical
-            component: application
-          annotations:
-            summary: CNAS application Service is unavailable
-            description: The internal HTTP probe has failed continuously for two minutes.
-            runbook_url: docs/DEMO-RUNBOOK.md#alert-exercises
-        - alert: CnasGatewayDown
-          expr: probe_success{service="gateway"} == 0 or absent(probe_success{service="gateway"})
-          for: 2m
-          labels:
-            severity: critical
-            component: gateway
-          annotations:
-            summary: CNAS gateway is unavailable
-            description: The Kong Gateway API HTTPS probe with Host cnas.local has failed for two minutes.
-            runbook_url: docs/DEMO-RUNBOOK.md#alert-exercises
-        - alert: CnasApplicationHighLatency
-          expr: probe_duration_seconds{service="php-app"} > 1
-          for: 5m
-          labels:
-            severity: warning
-            component: application
-          annotations:
-            summary: CNAS application latency is high
-            description: The HTTP probe has taken more than one second for five minutes.
         - alert: CnasDeploymentReplicasUnavailable
           expr: kube_deployment_status_replicas_available{namespace="cnas", deployment="php-app"} < kube_deployment_spec_replicas{namespace="cnas", deployment="php-app"}
           for: 2m
@@ -76,33 +47,6 @@ spec:
           annotations:
             summary: CNAS MySQL is not observable or is unavailable
             description: mysqld_exporter cannot connect to MySQL.
-        - alert: CnasMysqlConnectionsHigh
-          expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
-          for: 5m
-          labels:
-            severity: warning
-            component: database
-          annotations:
-            summary: CNAS MySQL connection utilization is above 80 percent
-            description: High connection utilization can cause application errors.
-        - alert: CnasMysqlPvcNearlyFull
-          expr: kubelet_volume_stats_used_bytes{namespace="cnas", persistentvolumeclaim="mysql-pvc"} / kubelet_volume_stats_capacity_bytes{namespace="cnas", persistentvolumeclaim="mysql-pvc"} > 0.85
-          for: 10m
-          labels:
-            severity: warning
-            component: storage
-          annotations:
-            summary: CNAS MySQL persistent volume is nearly full
-            description: More than 85 percent of the MySQL PVC is in use.
-        - alert: CnasMysqlPvcPending
-          expr: kube_persistentvolumeclaim_status_phase{namespace="cnas", persistentvolumeclaim="mysql-pvc", phase="Pending"} == 1
-          for: 5m
-          labels:
-            severity: critical
-            component: storage
-          annotations:
-            summary: CNAS MySQL PVC is pending
-            description: The MySQL volume claim has not bound to storage.
     - name: cnas.cluster
       rules:
         - alert: CnasAlertPipelineDrill
@@ -116,12 +60,3 @@ spec:
             summary: CNAS alert pipeline drill is active
             description: This synthetic alert is active only while the cnas-alert-drill ConfigMap exists.
             runbook_url: docs/DEMO-RUNBOOK.md#alert-exercises
-        - alert: CnasNodeNotReady
-          expr: kube_node_status_condition{condition="Ready", status="true"} == 0
-          for: 5m
-          labels:
-            severity: critical
-            component: cluster
-          annotations:
-            summary: A Kubernetes node is not ready
-            description: At least one cluster node has been NotReady for five minutes.

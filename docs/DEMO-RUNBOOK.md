@@ -55,14 +55,13 @@ $encoded = kubectl -n monitoring get secret cnas-grafana-admin -o 'jsonpath={.da
 
 The dashboard **CNAS Application, Gateway, MySQL and Cluster Overview** covers:
 
-- internal application and external gateway availability;
-- HTTP response time;
+- PHP replica availability;
+- PHP CPU and memory usage;
 - desired/current HPA replicas;
-- PHP CPU, memory, and restarts;
 - MySQL availability, connections, query rate, and PVC utilization;
 - consolidated workload logs from Loki.
 
-Prometheus rules alert on application/gateway outages, missing replicas, repeated restarts, prolonged maximum HPA scale, MySQL failure or connection pressure, low storage, pending PVCs, and NotReady nodes.
+Custom Prometheus rules alert on unavailable PHP replicas, repeated container restarts, prolonged maximum HPA scale and MySQL exporter failure. A safe synthetic drill validates Prometheus rule evaluation and Alertmanager delivery.
 
 ## 3. Baseline validation
 
@@ -79,7 +78,7 @@ Expected results:
 | Deployment and StatefulSet readiness | All desired replicas are ready |
 | Service health | `readyz.php` reports ready |
 | Gateway route | HTTPS Kong route with `Host: cnas.local` returns the application |
-| Gateway controls | HTTP redirects to HTTPS, responses contain `X-Request-ID`, and excess traffic receives HTTP 429 |
+| Gateway controls | HTTP redirects to HTTPS and excess traffic receives HTTP 429 |
 | Gateway-to-backend load balancing | 50 uniquely marked HTTPS requests appear in Apache access logs for at least two distinct PHP Pods |
 | MySQL isolation | An untrusted Pod cannot connect to port 3306 |
 | Admission negative tests | Latest-tag and resource fixtures are rejected by their named Kyverno policies; overlapping root/privileged controls may be rejected earlier by Pod Security Admission |
@@ -142,7 +141,7 @@ The script sends 60 requests through the Service, deletes one exact PHP Pod, wai
 
 This proves application Pod self-healing and Service continuity. It does **not** prove physical-host high availability, because all Kind nodes run on one host, and it does not make the single-replica MySQL StatefulSet highly available.
 
-## 7. Backup and restore exercise
+## 7. Backup exercise
 
 Create and structurally validate a consistent logical backup:
 
@@ -150,13 +149,7 @@ Create and structurally validate a consistent logical backup:
 .\scripts\Test-MySqlBackupRestore.ps1
 ```
 
-Prove restorability in an isolated temporary database, then automatically remove it:
-
-```powershell
-.\scripts\Test-MySqlBackupRestore.ps1 -ExecuteRestoreTest
-```
-
-The evidence includes backup size, SHA-256 digest, source Pod, timestamp, and restored row count. The SQL dump contains assignment data, so review and redact personal data before sharing it.
+The evidence records the backup size, SHA-256 digest, source Pod and timestamp. The automated isolated restore test has been removed to keep the coursework environment lightweight. The SQL dump contains assignment data, so review and redact personal data before sharing it.
 
 ## 8. Alert exercises
 
@@ -204,7 +197,7 @@ Before adding evidence to the assignment report:
 | Security | Kyverno rejection messages, NetworkPolicy denial, TLS gateway result, and image scan output |
 | Monitoring | Grafana dashboard panels, Prometheus target health, and tested alerts |
 | Auditing | Loki logs/events, Jenkins build record, immutable image digest, evidence metadata and hashes |
-| Data recovery | logical backup digest and successful isolated restore result |
+| Data recovery | logical backup file, size, SHA-256 digest and CronJob history |
 | CI/CD | Jenkins log containing rollout and `ci-smoke-test.sh` CRUD pass |
 
 ## Honest limitations of the Kind profile
