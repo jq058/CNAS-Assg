@@ -39,6 +39,10 @@ Write-Host "Installing Gateway API $gatewayApiVersion..."
 & kubectl apply --server-side=true -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/$gatewayApiVersion/standard-install.yaml"
 if ($LASTEXITCODE -ne 0) { throw 'Gateway API installation failed.' }
 
+Write-Host "Ensuring the CNAS namespace exists..."
+& kubectl apply -f (Join-Path $repositoryRoot 'k8s\00-namespace.yaml')
+if ($LASTEXITCODE -ne 0) { throw 'CNAS namespace creation failed.' }
+
 Write-Host "Installing Kong chart $kongChartVersion..."
 & helm repo add kong https://charts.konghq.com --force-update
 & helm repo update kong
