@@ -236,27 +236,6 @@ stage('Lint and unit tests') {
             }
         }
 
-        stage('Bootstrap platform controls') {
-            steps {
-                withKubeConfig([
-                    credentialsId: env.KUBERNETES_CREDENTIALS_ID
-                ]) {
-                    sh '''
-                    set -eu
-
-                    # Kong is configured to watch the cnas namespace,
-                    # so it must exist before installing the Kong Helm chart.
-                    kubectl apply \
-                    -f k8s/00-namespace.yaml
-
-                    bash k8s/scripts/install-platform.sh
-
-                    bash k8s/scripts/bootstrap-local-tls.sh
-                '''
-                }
-            }
-        }
-
         stage('Inject runtime secrets') {
             steps {
                 withKubeConfig([
@@ -334,9 +313,6 @@ images:
 
                     sh '''
                         set -eu
-
-                        kubectl apply \
-                          -f k8s/kyverno/
 
                         kubectl apply \
                           -k ci-runtime
