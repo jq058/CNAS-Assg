@@ -5,10 +5,8 @@ Use this checklist with [docs/DEMO-RUNBOOK.md](docs/DEMO-RUNBOOK.md).
 ## Source and local application
 
 - [ ] Record the tested Git commit.
-- [ ] Docker Compose renders without secrets committed.
 - [ ] Application image builds as non-root on port 8080.
 - [ ] PHP lint and all unit tests pass.
-- [ ] Compose web, MySQL, and Redis become healthy.
 - [ ] Create, read, update, delete, duplicate-email, and invalid-input behavior are observed.
 - [ ] Liveness and dependency readiness behave differently during a dependency failure.
 
