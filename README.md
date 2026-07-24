@@ -1,6 +1,6 @@
 # CNAS cloud-native application
 
-A secure PHP and MySQL CRUD application designed to demonstrate the CNAS assignment requirements with repeatable evidence. The repository contains a local Docker Compose profile, a multi-node Kind platform, Kubernetes security and resilience controls, observability, automated tests, and a gated Jenkins delivery pipeline.
+A secure PHP, Redis and MySQL CRUD application designed to demonstrate the CNAS assignment requirements with repeatable evidence. The repository contains a multi-node Kind platform, Kubernetes security and resilience controls, observability, automated tests, and a gated Jenkins delivery pipeline.
 
 ## Architecture
 
@@ -37,35 +37,6 @@ The coursework profile uses:
 - Jenkins gates for linting, tests, Trivy scans, SBOM generation, immutable image delivery, smoke tests, and guarded rollback.
 
 See [Architecture](docs/ARCHITECTURE.md) for trust boundaries, deployment decisions, requirement mapping, and honest limitations.
-
-## Local Docker Compose check
-
-Prerequisites: Docker Desktop with Compose v2.
-
-1. Copy .env.example to .env.
-2. Replace every placeholder password with a different long random value.
-3. Start the stack.
-
-~~~powershell
-Copy-Item .env.example .env
-docker compose up -d --build
-docker compose ps
-~~~
-
-Open http://localhost:8080 and test create, read, update, and delete. The health endpoints are:
-
-~~~powershell
-curl.exe http://localhost:8080/livez.php
-curl.exe http://localhost:8080/readyz.php
-~~~
-
-Stop the stack while keeping data:
-
-~~~powershell
-docker compose down
-~~~
-
-Only use docker compose down -v when you intentionally want to erase the local MySQL and Redis volumes.
 
 ## Automated application checks
 
@@ -167,7 +138,6 @@ These boundaries are important in the report: the web tier demonstrates redundan
 | Path | Purpose |
 |---|---|
 | php-app | PHP application, Apache configuration, health endpoints, and security controls |
-| db | Local Compose initialization schema |
 | k8s | Core manifests, Kustomize base, platform bootstrap, gateway, policies, and observability |
 | tests/php | Fast application security and validation tests |
 | tests/k8s | Smoke, load, continuity, network, and negative admission fixtures |
@@ -179,9 +149,8 @@ These boundaries are important in the report: the web tier demonstrates redundan
 
 | Member | Primary area |
 |---|---|
-| Ee Ting Li | Application, MySQL, Docker, and Compose |
+| Ee Ting Li | Application, MySQL, and Docker containerisation |
 | Lau Jia Qi | Kubernetes platform, services, gateway, scaling, and storage |
 | Chee Hsiao En Samuela | CI/CD, security, policies, and secret handling |
 | Janice Oh Shi Ting | Observability, validation evidence, demonstration, and report coordination |
 
-The team should cross-review every area because the final demonstration and report depend on end-to-end behavior.

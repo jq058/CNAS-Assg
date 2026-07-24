@@ -2,37 +2,6 @@
 
 Use this page for a fast local check. Use [the demonstration runbook](docs/DEMO-RUNBOOK.md) for graded Kubernetes evidence.
 
-## Docker Compose
-
-Prerequisite: Docker Desktop with Compose v2.
-
-~~~powershell
-Copy-Item .env.example .env
-~~~
-
-Open .env and replace all three password placeholders with different long random values. Then run:
-
-~~~powershell
-docker compose up -d --build
-docker compose ps
-curl.exe http://localhost:8080/livez.php
-curl.exe http://localhost:8080/readyz.php
-~~~
-
-Open http://localhost:8080 and verify create, read, update, and delete.
-
-Keep the data and stop:
-
-~~~powershell
-docker compose down
-~~~
-
-Erase the local database/session volumes only when a clean reset is intended:
-
-~~~powershell
-docker compose down -v
-~~~
-
 ## Kubernetes coursework environment
 
 Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, and PowerShell 7.

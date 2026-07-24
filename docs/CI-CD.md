@@ -6,7 +6,7 @@ The committed `Jenkinsfile` builds one immutable application image and promotes 
 
 The Jenkins agent needs:
 
-- Docker Engine and Docker Compose v2;
+- Docker Engine and Docker CLI;
 - `kubectl` with Kustomize support;
 - Helm and OpenSSL;
 - Trivy;
@@ -33,7 +33,7 @@ Jenkins masks the credential bindings, and the shell disables command tracing wh
 
 1. Checkout and record the twelve-character Git commit.
 2. PHP syntax checks and repository unit tests in a clean PHP CLI container.
-3. Docker Compose parsing and Kustomize rendering.
+3. Kubernetes manifest validation and Kustomize rendering.
 4. Trivy source, IaC, dependency, and secret scanning; HIGH/CRITICAL findings fail the build.
 5. Build `${BUILD_NUMBER}-${GIT_SHA}` once.
 6. Trivy image gate and CycloneDX SBOM generation.
