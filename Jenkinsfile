@@ -161,7 +161,6 @@ pipeline {
                       php -r '
                         $required = [
                             "mysqli",
-                            "pdo_mysql",
                             "redis"
                         ];
 

@@ -8,24 +8,14 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS; \
     docker-php-ext-install -j"$(nproc)" \
-        mysqli \
-        pdo_mysql; \
+        mysqli; \
     pecl install "redis-${REDIS_EXTENSION_VERSION}"; \
     docker-php-ext-enable redis
 
 # Runtime stage: clean base without build dependencies
 FROM php:8.2-apache-bookworm
 
-ARG REDIS_EXTENSION_VERSION=6.3.0
-
-# Install only runtime dependencies
 RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
-        curl; \
-    apt-get purge -y --auto-remove \
-        libc6-dev \
-        linux-libc-dev; \
     rm -rf \
         /var/lib/apt/lists/* \
         /tmp/* \
@@ -35,7 +25,7 @@ RUN set -eux; \
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
-RUN a2enmod headers rewrite \
+RUN a2enmod headers \
     && sed -ri \
         -e 's!^export APACHE_RUN_DIR=.*!export APACHE_RUN_DIR=/tmp/apache2!' \
         -e 's!^export APACHE_LOCK_DIR=.*!export APACHE_LOCK_DIR=/tmp/apache2-lock!' \
@@ -80,15 +70,6 @@ WORKDIR /var/www/html
 USER www-data
 
 EXPOSE 8080
-
-HEALTHCHECK \
-    --interval=30s \
-    --timeout=3s \
-    --start-period=20s \
-    --retries=3 \
-    CMD curl --fail --silent --show-error \
-        http://127.0.0.1:8080/livez.php \
-        || exit 1
 
 ENTRYPOINT ["cnas-entrypoint"]
 
