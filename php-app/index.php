@@ -21,7 +21,6 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CNAS Assignment - Team Members</title>
     <link rel="stylesheet" href="assets/styles.css">
-    <script src="assets/app.js" defer></script>
 </head>
 <body>
 <main class="container">
@@ -57,8 +56,7 @@ try {
                         <td><a href="mailto:<?= h($member['email']) ?>"><?= h($member['email']) ?></a></td>
                         <td class="actions">
                             <a href="update.php?id=<?= h($member['id']) ?>">Edit</a>
-                            <form method="post" action="delete.php" class="delete-form"
-                                  data-member-name="<?= h($member['name']) ?>">
+                            <form method="post" action="delete.php" class="delete-form">
                                 <input type="hidden" name="id" value="<?= h($member['id']) ?>">
                                 <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
                                 <button class="link-button danger" type="submit">Delete</button>
