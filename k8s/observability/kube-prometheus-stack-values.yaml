@@ -79,7 +79,7 @@ prometheus:
     ruleNamespaceSelector: {}
     podMetadata:
       labels:
-        cnas.openai/role: prometheus
+        cnas.assg/role: prometheus
     resources:
       requests:
         cpu: 100m
