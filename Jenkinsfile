@@ -116,15 +116,11 @@ pipeline {
                      * --pull obtains the newest version of the configured
                      * base image.
                      *
-                     * --no-cache prevents Jenkins from reusing older,
-                     * vulnerable Docker build layers while validating
-                     * the Dockerfile security fix.
-                     *
                      * The final "." is the Docker build context.
                      */
                     appImage = docker.build(
                         "${env.DOCKER_IMAGE_NAME}:${env.IMAGE_TAG}",
-                        '--pull --no-cache .'
+                        '--pull .'
                     )
                 }
 
