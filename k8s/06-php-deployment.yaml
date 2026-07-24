@@ -58,16 +58,6 @@ spec:
             matchLabels:
               app: php-app
 
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    app: php-app
-
       initContainers:
         - name: wait-for-mysql
           image: busybox:1.37.0
