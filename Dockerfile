@@ -15,7 +15,11 @@ RUN set -eux; \
 # Runtime stage: clean base without build dependencies
 FROM php:8.2-apache-bookworm
 
+# Upgrade the vulnerable package inherited from the base image.
 RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends --only-upgrade \
+        linux-libc-dev; \
     rm -rf \
         /var/lib/apt/lists/* \
         /tmp/* \
