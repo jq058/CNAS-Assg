@@ -81,11 +81,15 @@ The tests cover output encoding, validation, database field limits, UTF-8 handli
 
 Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, and PowerShell 7 or Bash.
 
+**Step 1 — Create the platform once**
+
 Create the pinned four-node cluster and install Calico, Gateway API, Kong, Kyverno, and Metrics Server:
 
 ~~~powershell
 .\k8s\scripts\create-kind-cluster.ps1
 ~~~
+
+**Step 2 — Bootstrap secrets and TLS**
 
 Set strong runtime credentials in the current terminal and bootstrap them without writing a populated Secret manifest:
 
@@ -98,18 +102,17 @@ $env:REDIS_PASSWORD = "<different-redis-password>"
 .\k8s\scripts\bootstrap-local-tls.ps1
 ~~~
 
-Build and load the local bootstrap image, then deploy the Kustomize base:
+For the local TLS demonstration, map cnas.local to 127.0.0.1 in the workstation hosts file.
+
+**Step 3 — Deploy via Jenkins**
+
+Trigger a Jenkins pipeline build. The pipeline lints, tests, scans, builds an immutable image, pushes it to Docker Hub, deploys the exact image to the cluster, and verifies it. See the [Jenkins guide](docs/CI-CD.md) for credential IDs and agent prerequisites.
+
+**Step 4 — Install monitoring**
 
 ~~~powershell
-docker build -t jqii/cnas-php-app:bootstrap .
-kind load docker-image jqii/cnas-php-app:bootstrap --name cnas-cluster
-kubectl apply -k k8s
-kubectl -n cnas wait --for=condition=complete job/db-migration-v2 --timeout=300s
-kubectl -n cnas rollout status deployment/php-app --timeout=300s
-kubectl -n cnas get pods -o wide
+.\scripts\Install-Observability.ps1
 ~~~
-
-For the local TLS demonstration, map cnas.local to 127.0.0.1 in the workstation hosts file, then open https://cnas.local. The certificate is intentionally self-signed for Kind only.
 
 The platform scripts refuse to modify a cluster whose current context is not kind-cnas-cluster. Read [Kubernetes platform runbook](k8s/PLATFORM.md) before deployment.
 

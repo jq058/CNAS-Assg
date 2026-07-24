@@ -37,9 +37,15 @@ docker compose down -v
 
 Prerequisites: Docker Desktop, Kind, kubectl, Helm 3, and PowerShell 7.
 
+**Step 1 — Create the platform**
+
 ~~~powershell
 .\k8s\scripts\create-kind-cluster.ps1
+~~~
 
+**Step 2 — Bootstrap secrets and TLS**
+
+~~~powershell
 $env:DB_USER = "cnasuser"
 $env:DB_PASSWORD = "<strong-database-password>"
 $env:MYSQL_ROOT_PASSWORD = "<different-root-password>"
@@ -47,16 +53,18 @@ $env:REDIS_PASSWORD = "<different-redis-password>"
 
 .\k8s\scripts\bootstrap-secrets.ps1
 .\k8s\scripts\bootstrap-local-tls.ps1
-
-docker build -t jqii/cnas-php-app:bootstrap .
-kind load docker-image jqii/cnas-php-app:bootstrap --name cnas-cluster
-kubectl apply -k k8s
-
-kubectl -n cnas wait --for=condition=complete job/db-migration-v2 --timeout=300s
-kubectl -n cnas rollout status deployment/php-app --timeout=300s
-kubectl -n cnas get pods -o wide
 ~~~
 
-Add 127.0.0.1 cnas.local to the workstation hosts file, then open https://cnas.local. The local certificate is self-signed by design.
+Add `127.0.0.1 cnas.local` to the workstation hosts file.
 
-Read [the platform runbook](k8s/PLATFORM.md) for the platform safeguards and [the demonstration runbook](docs/DEMO-RUNBOOK.md) for security, scaling, resilience, monitoring, backup/restore, and evidence checks.
+**Step 3 — Deploy via Jenkins**
+
+Trigger a Jenkins pipeline build. The pipeline builds, scans, pushes, deploys, and verifies the application. See [docs/CI-CD.md](docs/CI-CD.md) for credential IDs and agent prerequisites.
+
+**Step 4 — Install monitoring**
+
+~~~powershell
+.\scripts\Install-Observability.ps1
+~~~
+
+Read [the platform runbook](k8s/PLATFORM.md) for platform safeguards and [the demonstration runbook](docs/DEMO-RUNBOOK.md) for security, scaling, resilience, monitoring, backup, and evidence checks.

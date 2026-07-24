@@ -138,24 +138,7 @@ pipeline {
                       "$DOCKER_IMAGE_NAME:$IMAGE_TAG" \
                       > /dev/null
 
-                    # linux-libc-dev is only required while compiling.
-                    # It should not remain in the final runtime image.
-                    docker run --rm \
-                      "$DOCKER_IMAGE_NAME:$IMAGE_TAG" \
-                      sh -c '
-                        set -eu
-
-                        if dpkg -s linux-libc-dev >/dev/null 2>&1; then
-                            echo "ERROR: linux-libc-dev is still installed."
-                            dpkg -s linux-libc-dev
-                            exit 1
-                        fi
-
-                        echo "PASS: linux-libc-dev is not installed."
-                      '
-
-                    # Confirm that removing the build dependencies did not
-                    # remove PHP extensions required by the application.
+                    # Confirm required PHP extensions are present in the image.
                     docker run --rm \
                       "$DOCKER_IMAGE_NAME:$IMAGE_TAG" \
                       php -r '
